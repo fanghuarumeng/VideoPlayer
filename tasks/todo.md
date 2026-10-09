@@ -176,16 +176,18 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** Archive.org search + metadata → direct download URL; fixture-based parse tests; wire into ingest source list.
 
 **Acceptance criteria:**
-- [ ] Fixture tests resolve a sample identifier to download URL
-- [ ] Prefer mp4 when present; skip items without usable file
-- [ ] Live network not required for CI green
+- [x] Fixture tests resolve a sample identifier to download URL
+- [x] Prefer mp4 when present; skip items without usable file
+- [x] Live network not required for CI green
 
 **Verification:**
-- [ ] `ctest --test-dir build-server -C Release -R archive_org --output-on-failure`
+- [x] `ctest --test-dir build-server -C Release -R ArchiveOrg --output-on-failure`
 
 **Dependencies:** Task 4, Task 5  
 **Files likely touched:** `src/server/video_source/ArchiveOrgSource.*`, `tests/server/video_source/archive_org_parse_test.cpp`, fixtures under `tests/server/video_source/fixtures/`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). Live HTTPS needs OpenSSL-enabled httplib; tests inject HttpGetFn.
 
 ---
 

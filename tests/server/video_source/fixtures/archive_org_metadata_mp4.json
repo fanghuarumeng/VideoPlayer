@@ -1,0 +1,25 @@
+{
+  "created": 123,
+  "files": [
+    {
+      "name": "WartimeN1943.gif",
+      "format": "Animated GIF"
+    },
+    {
+      "name": "WartimeN1943.ogv",
+      "format": "Ogg Video"
+    },
+    {
+      "name": "WartimeN1943.mp4",
+      "format": "h.264"
+    },
+    {
+      "name": "WartimeN1943_meta.xml",
+      "format": "Metadata"
+    }
+  ],
+  "metadata": {
+    "identifier": ["WartimeN1943"],
+    "title": ["Wartime Nutrition"]
+  }
+}

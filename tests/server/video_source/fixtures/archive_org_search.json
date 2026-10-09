@@ -1,0 +1,19 @@
+{
+  "responseHeader": {
+    "status": 0
+  },
+  "response": {
+    "numFound": 2,
+    "start": 0,
+    "docs": [
+      {
+        "identifier": "WartimeN1943",
+        "title": "Wartime Nutrition"
+      },
+      {
+        "identifier": "NoVideoItem",
+        "title": "Text Only Item"
+      }
+    ]
+  }
+}
