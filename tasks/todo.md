@@ -73,7 +73,7 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 - [x] Server configures/builds without Qt
 - [x] video_store tests pass
-- [ ] Review with human before Phase B
+- [x] Review with human before Phase B
 
 ---
 
@@ -82,16 +82,18 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** Implement authorized JSON catalog adapter; reject malformed entries; filter by keyword.
 
 **Acceptance criteria:**
-- [ ] Loads catalog from path; returns `VideoCandidate`s with real http(s) URLs
-- [ ] Keyword filter on title; missing URL entries skipped/rejected
-- [ ] Fixture GTest without network
+- [x] Loads catalog from path; returns `VideoCandidate`s with real http(s) URLs
+- [x] Keyword filter on title; missing URL entries skipped/rejected
+- [x] Fixture GTest without network
 
 **Verification:**
-- [ ] `ctest --test-dir build-server -C Release -R authorized_catalog --output-on-failure`
+- [x] `ctest --test-dir build-server -C Release -R AuthorizedCatalog --output-on-failure`
 
 **Dependencies:** Task 2 (Task 3 not strictly required but keep order)  
 **Files likely touched:** `src/server/video_source/IVideoSource.h`, `AuthorizedCatalogSource.*`, `tests/server/video_source/authorized_catalog_test.cpp`, sample `config/authorized_catalog.example.json`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09).
 
 ---
 

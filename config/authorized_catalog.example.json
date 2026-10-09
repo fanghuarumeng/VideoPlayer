@@ -1,0 +1,16 @@
+{
+  "videos": [
+    {
+      "id": "auth-001",
+      "title": "Morning Square Dance Demo",
+      "play_url": "https://example.com/videos/morning.mp4",
+      "download_url": "https://example.com/videos/morning.mp4"
+    },
+    {
+      "id": "auth-002",
+      "title": "Evening Practice",
+      "play_url": "https://example.com/videos/evening.mp4",
+      "download_url": "https://example.com/videos/evening.mp4"
+    }
+  ]
+}
