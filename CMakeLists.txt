@@ -75,6 +75,8 @@ if(BUILD_SERVER)
     src/server/square_dance/server/video_source/AuthorizedCatalogSource.cpp
     src/server/square_dance/server/video_source/ArchiveOrgSource.cpp
     src/server/square_dance/server/ingest/IngestService.cpp
+    src/server/square_dance/server/url_health/UrlProber.cpp
+    src/server/square_dance/server/url_health/UrlHealthService.cpp
     src/server/square_dance/server/api/video_json.cpp
     src/server/square_dance/server/api/HttpApiServer.cpp
     src/server/square_dance/server/api/WsPushServer.cpp
@@ -116,6 +118,7 @@ if(BUILD_SERVER)
     tests/server/video_source/authorized_catalog_test.cpp
     tests/server/video_source/archive_org_parse_test.cpp
     tests/server/ingest/ingest_service_test.cpp
+    tests/server/url_health/url_health_service_test.cpp
     tests/server/api/video_json_test.cpp
     tests/server/api/http_search_test.cpp
     tests/server/api/ws_push_test.cpp

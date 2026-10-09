@@ -196,16 +196,18 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** Probe play/download URLs; after 3 failures hard-delete; removed handler for WS.
 
 **Acceptance criteria:**
-- [ ] Mock prober: 3 fails → deleted + handler; success resets counter
-- [ ] 12h timer start/stop
-- [ ] HEAD with GET fallback behavior covered or documented in prober
+- [x] Mock prober: 3 fails → deleted + handler; success resets counter
+- [x] 12h timer start/stop
+- [x] HEAD with GET fallback behavior covered or documented in prober
 
 **Verification:**
-- [ ] `ctest --test-dir build-server -C Release -R url_health --output-on-failure`
+- [x] `ctest --test-dir build-server -C Release -R UrlHealth --output-on-failure`
 
 **Dependencies:** Task 3  
 **Files likely touched:** `src/server/url_health/*`, `tests/server/url_health/url_health_service_test.cpp`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). Threshold=3; removed handler ready for WsPush in Task 10.
 
 ---
 
