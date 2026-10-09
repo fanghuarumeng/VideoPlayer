@@ -29,12 +29,21 @@ class CatalogModel : public QAbstractListModel {
   QHash<int, QByteArray> roleNames() const;
 
   Video videoAt(int row) const;
+  QString filterQuery() const;
+  int indexOfId(qint64 id) const;
 
  public slots:
   void resetFromSearch(const QVector<square_dance::client::Video>& videos);
+  void setFilterQuery(const QString& query);
+  // Elder-ui push rules: empty filter → prepend/update; else keep only title match.
+  void applyUpserted(const square_dance::client::Video& video);
+  void applyRemoved(qint64 id);
 
  private:
+  bool MatchesFilter(const Video& video) const;
+
   QVector<Video> videos_;
+  QString filter_query_;
 };
 
 }  // namespace client

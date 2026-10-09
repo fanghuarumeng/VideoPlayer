@@ -289,17 +289,19 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** Qt WebSockets client; reconnect backoff; apply upsert/remove to `CatalogModel` per elder-ui filter rules.
 
 **Acceptance criteria:**
-- [ ] Connects to `ws_url`; handles `video.upserted` / `video.removed`
-- [ ] Connection state signal for UI
-- [ ] Ignores unknown message types
+- [x] Connects to `ws_url`; handles `video.upserted` / `video.removed`
+- [x] Connection state signal for UI
+- [x] Ignores unknown message types
 
 **Verification:**
-- [ ] Manual: server ingest → client model updates without re-search
-- [ ] Unit test for JSON message dispatch if practical
+- [ ] Manual: server ingest → client model updates without re-search (deferred to Checkpoint D / Task 16 wiring)
+- [x] Unit test for JSON message dispatch if practical
 
 **Dependencies:** Task 7, Task 12  
 **Files likely touched:** `src/client/api/PushClient.*`, model update helpers  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). `PushClient` + `push_json`; model `applyUpserted`/`applyRemoved` with elder filter rules; reconnect backoff 1s→30s.
 
 ---
 

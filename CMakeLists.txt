@@ -146,7 +146,7 @@ if(BUILD_CLIENT)
   endif()
 
   set(CMAKE_AUTOMOC ON)
-  find_package(Qt5 REQUIRED COMPONENTS Widgets Network Test)
+  find_package(Qt5 REQUIRED COMPONENTS Widgets Network WebSockets Test)
 
   add_library(square_dance_client_lib
     src/client/square_dance/client/ClientConfig.cpp
@@ -155,6 +155,8 @@ if(BUILD_CLIENT)
     src/client/square_dance/client/api/catalog_json.cpp
     src/client/square_dance/client/api/CatalogClient.cpp
     src/client/square_dance/client/api/CatalogModel.cpp
+    src/client/square_dance/client/api/push_json.cpp
+    src/client/square_dance/client/api/PushClient.cpp
   )
   target_include_directories(square_dance_client_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/client"
@@ -165,6 +167,7 @@ if(BUILD_CLIENT)
       nlohmann_json::nlohmann_json
       Qt5::Widgets
       Qt5::Network
+      Qt5::WebSockets
   )
 
   add_executable(SquareDanceApp
@@ -186,6 +189,9 @@ if(BUILD_CLIENT)
     tests/client/api/catalog_json_test.cpp
     tests/client/api/catalog_model_test.cpp
     tests/client/api/catalog_client_test.cpp
+    tests/client/api/push_json_test.cpp
+    tests/client/api/push_model_test.cpp
+    tests/client/api/push_client_test.cpp
   )
   target_link_libraries(SquareDanceClientTests
     PRIVATE

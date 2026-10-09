@@ -1,0 +1,12 @@
+{
+  "type": "video.upserted",
+  "video": {
+    "id": 3,
+    "external_id": "auth-003",
+    "title": "新编广场舞",
+    "play_url": "https://example.com/3.mp4",
+    "download_url": "https://example.com/3.mp4",
+    "source_type": "authorized",
+    "updated_at": "2026-10-09T10:00:00Z"
+  }
+}
