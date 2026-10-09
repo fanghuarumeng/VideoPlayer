@@ -1,0 +1,25 @@
+Local client build / run (Task 11+)
+
+1) Configure (Qt5 Widgets; adjust CMAKE_PREFIX_PATH to your kit):
+
+   cmake -S . -B build-client -G "Visual Studio 16 2019" -A x64 ^
+     -DBUILD_SERVER=OFF -DBUILD_CLIENT=ON ^
+     -DCMAKE_PREFIX_PATH=D:/Qt/Qt5.12.11/5.12.11/msvc2017_64
+
+2) Build:
+
+   cmake --build build-client --config Release --target SquareDanceApp
+   cmake --build build-client --config Release --target SquareDanceClientTests
+
+3) Tests:
+
+   ctest --test-dir build-client -C Release -R "ClientConfig|MainWindow" --output-on-failure
+
+4) Run (from repo root; windeployqt copies Qt DLLs next to the exe on build):
+
+   build-client\Release\SquareDanceApp.exe --config config\client.json.example
+
+Notes:
+- Client must not link QtSql; catalog comes from HTTP/WS only.
+- Backend should be running on http://127.0.0.1:8080 and ws://127.0.0.1:8081
+  for later search/push tasks (see config/run-server.txt).

@@ -245,19 +245,21 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** `SquareDanceApp` Qt5 Widgets target, `ClientConfig`, empty `MainWindow`, client GTest smoke. No SQLite.
 
 **Acceptance criteria:**
-- [ ] App opens a window with `--config config/client.json`
-- [ ] Config has `http_base_url`, `ws_url`, `download_dir`
-- [ ] Client smoke GTest passes
-- [ ] No QtSql in client link line
+- [x] App opens a window with `--config config/client.json`
+- [x] Config has `http_base_url`, `ws_url`, `download_dir`
+- [x] Client smoke GTest passes
+- [x] No QtSql in client link line
 
 **Verification:**
-- [ ] Configure with Qt `CMAKE_PREFIX_PATH`; build `SquareDanceApp`
-- [ ] `ctest --test-dir build-client -C Release -R client_config --output-on-failure`
-- [ ] Manual: window visible
+- [x] Configure with Qt `CMAKE_PREFIX_PATH`; build `SquareDanceApp`
+- [x] `ctest --test-dir build-client -C Release -R ClientConfig --output-on-failure` (also MainWindow smoke)
+- [x] Manual: window visible
 
 **Dependencies:** Task 1  
 **Files likely touched:** `src/client/main.cpp`, `ClientConfig.*`, `MainWindow.*`, `config/client.json.example`, `tests/client/*`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). Qt 5.12 msvc2017_64; POST_BUILD windeployqt; see `config/run-client.txt`.
 
 ---
 
@@ -266,17 +268,19 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** HTTP search/detail client; list model for UI binding; parse common JSON.
 
 **Acceptance criteria:**
-- [ ] `search(name)` emits results or error
-- [ ] Model resets from search results
-- [ ] JSON parse unit test from fixture
+- [x] `search(name)` emits results or error
+- [x] Model resets from search results
+- [x] JSON parse unit test from fixture
 
 **Verification:**
-- [ ] `ctest --test-dir build-client -C Release -R catalog --output-on-failure`
-- [ ] Manual against running server: search returns rows
+- [x] `ctest --test-dir build-client -C Release -R "[Cc]atalog" --output-on-failure`
+- [ ] Manual against running server: search returns rows (optional; covered by FakeSearchServer unit test)
 
 **Dependencies:** Task 6, Task 11  
 **Files likely touched:** `src/client/api/CatalogClient.*`, `CatalogModel.*`, `tests/client/api/*`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). `CatalogClient`/`CatalogModel`/`catalog_json`; Qt Network; getById ready for later UI.
 
 ---
 

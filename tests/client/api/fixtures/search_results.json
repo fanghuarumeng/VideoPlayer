@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "external_id": "auth-001",
+    "title": "广场舞基础步伐",
+    "play_url": "https://example.com/a.mp4",
+    "download_url": "https://example.com/a.mp4",
+    "source_type": "authorized",
+    "updated_at": "2026-10-09T08:00:00Z"
+  },
+  {
+    "id": 2,
+    "external_id": "WartimeN1943",
+    "title": "square dance sample",
+    "play_url": "https://archive.org/download/WartimeN1943/WartimeN1943.mp4",
+    "download_url": "https://archive.org/download/WartimeN1943/WartimeN1943.mp4",
+    "source_type": "archive_org",
+    "updated_at": "2026-10-09T09:00:00Z"
+  }
+]

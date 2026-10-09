@@ -140,9 +140,82 @@ if(BUILD_SERVER)
 endif()
 
 if(BUILD_CLIENT)
-  message(STATUS "BUILD_CLIENT=ON (client targets added in later tasks)")
   if(NOT BUILD_SERVER)
     include(cmake/ServerDeps.cmake)
     target_link_libraries(square_dance_common INTERFACE nlohmann_json::nlohmann_json)
   endif()
+
+  set(CMAKE_AUTOMOC ON)
+  find_package(Qt5 REQUIRED COMPONENTS Widgets Network Test)
+
+  add_library(square_dance_client_lib
+    src/client/square_dance/client/ClientConfig.cpp
+    src/client/square_dance/client/ClientApp.cpp
+    src/client/square_dance/client/MainWindow.cpp
+    src/client/square_dance/client/api/catalog_json.cpp
+    src/client/square_dance/client/api/CatalogClient.cpp
+    src/client/square_dance/client/api/CatalogModel.cpp
+  )
+  target_include_directories(square_dance_client_lib PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/client"
+  )
+  target_link_libraries(square_dance_client_lib
+    PUBLIC
+      square_dance_common
+      nlohmann_json::nlohmann_json
+      Qt5::Widgets
+      Qt5::Network
+  )
+
+  add_executable(SquareDanceApp
+    src/client/main.cpp
+  )
+  target_link_libraries(SquareDanceApp PRIVATE square_dance_client_lib)
+
+  get_target_property(_client_libs square_dance_client_lib LINK_LIBRARIES)
+  if(_client_libs MATCHES "Qt5::Sql|Qt6::Sql")
+    message(FATAL_ERROR "Client must not link QtSql")
+  endif()
+  get_target_property(_app_libs SquareDanceApp LINK_LIBRARIES)
+  if(_app_libs MATCHES "Qt5::Sql|Qt6::Sql")
+    message(FATAL_ERROR "SquareDanceApp must not link QtSql")
+  endif()
+
+  add_executable(SquareDanceClientTests
+    tests/client/client_config_test.cpp
+    tests/client/api/catalog_json_test.cpp
+    tests/client/api/catalog_model_test.cpp
+    tests/client/api/catalog_client_test.cpp
+  )
+  target_link_libraries(SquareDanceClientTests
+    PRIVATE
+      square_dance_client_lib
+      GTest::gtest
+      Qt5::Test
+  )
+  file(TO_CMAKE_PATH "${CMAKE_SOURCE_DIR}" _square_dance_client_source_dir)
+  target_compile_definitions(SquareDanceClientTests PRIVATE
+    "SQUARE_DANCE_SOURCE_DIR=\"${_square_dance_client_source_dir}\""
+  )
+
+  # Deploy Qt runtime next to exes so tests/app start without a hand-tuned PATH.
+  if(WIN32)
+    get_filename_component(_qt5_prefix "${Qt5_DIR}/../../.." ABSOLUTE)
+    find_program(WINDEPLOYQT_EXECUTABLE windeployqt
+      HINTS "${_qt5_prefix}/bin"
+      REQUIRED
+    )
+    foreach(_deploy_target SquareDanceApp SquareDanceClientTests)
+      add_custom_command(TARGET ${_deploy_target} POST_BUILD
+        COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+          --no-translations
+          --no-compiler-runtime
+          "$<TARGET_FILE:${_deploy_target}>"
+        COMMENT "windeployqt ${_deploy_target}"
+      )
+    endforeach()
+  endif()
+
+  include(GoogleTest)
+  gtest_discover_tests(SquareDanceClientTests)
 endif()
