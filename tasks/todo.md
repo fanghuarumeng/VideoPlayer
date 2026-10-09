@@ -162,15 +162,6 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 ---
 
-## Checkpoint B — Authorized → HTTP → WS
-
-- [ ] Ingest from example authorized catalog fills DB
-- [ ] curl search returns titles
-- [ ] WS client sees upsert after ingest
-- [ ] Human review before Archive.org / health
-
----
-
 ## Task 8: ArchiveOrgSource
 
 **Description:** Archive.org search + metadata → direct download URL; fixture-based parse tests; wire into ingest source list.
