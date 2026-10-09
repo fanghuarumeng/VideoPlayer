@@ -242,6 +242,41 @@ bool SqliteVideoRepository::getById(std::int64_t id, Video* out,
   return true;
 }
 
+bool SqliteVideoRepository::findBySourceKey(const std::string& source_type,
+                                            const std::string& external_id,
+                                            Video* out,
+                                            std::string* error) {
+  if (db_ == NULL) {
+    SetError(error, "repository not open");
+    return false;
+  }
+  if (out == NULL) {
+    SetError(error, "out is null");
+    return false;
+  }
+
+  const char* sql =
+      "SELECT id, external_id, title, play_url, download_url, source_type,"
+      "       consecutive_failures, created_at, updated_at "
+      "FROM videos WHERE source_type = ? AND external_id = ?;";
+  sqlite3_stmt* stmt = NULL;
+  if (sqlite3_prepare_v2(db_, sql, -1, &stmt, NULL) != SQLITE_OK) {
+    SetError(error, sqlite3_errmsg(db_));
+    return false;
+  }
+  sqlite3_bind_text(stmt, 1, source_type.c_str(), -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 2, external_id.c_str(), -1, SQLITE_TRANSIENT);
+  const int rc = sqlite3_step(stmt);
+  if (rc != SQLITE_ROW) {
+    SetError(error, "video not found");
+    sqlite3_finalize(stmt);
+    return false;
+  }
+  *out = ReadVideoRow(stmt);
+  sqlite3_finalize(stmt);
+  return true;
+}
+
 bool SqliteVideoRepository::removeById(std::int64_t id, std::string* error) {
   if (db_ == NULL) {
     SetError(error, "repository not open");

@@ -16,6 +16,10 @@ class IVideoRepository {
   virtual std::vector<Video> searchByName(const std::string& query,
                                           int limit) = 0;
   virtual bool getById(std::int64_t id, Video* out, std::string* error) = 0;
+  virtual bool findBySourceKey(const std::string& source_type,
+                               const std::string& external_id,
+                               Video* out,
+                               std::string* error) = 0;
   virtual bool removeById(std::int64_t id, std::string* error) = 0;
   virtual std::vector<Video> listAll(int limit, int offset) = 0;
 };

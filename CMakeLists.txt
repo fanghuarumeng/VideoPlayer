@@ -42,6 +42,7 @@ if(BUILD_SERVER)
     src/server/square_dance/server/log.cpp
     src/server/square_dance/server/video_store/SqliteVideoRepository.cpp
     src/server/square_dance/server/video_source/AuthorizedCatalogSource.cpp
+    src/server/square_dance/server/ingest/IngestService.cpp
   )
   target_include_directories(square_dance_server_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/server"
@@ -76,6 +77,7 @@ if(BUILD_SERVER)
     tests/server/server_config_test.cpp
     tests/server/video_store/sqlite_repository_test.cpp
     tests/server/video_source/authorized_catalog_test.cpp
+    tests/server/ingest/ingest_service_test.cpp
   )
   target_link_libraries(SquareDanceServerTests
     PRIVATE

@@ -102,17 +102,19 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** `runOnce` over configured sources → upsert into repository; 12h timer; upserted handler callback; no media download.
 
 **Acceptance criteria:**
-- [ ] Double `runOnce` does not duplicate rows
-- [ ] Handler fires with inserted/updated videos (skip identical no-op when detectable)
-- [ ] Timer start/stop safe
-- [ ] GTest with fake source + temp repo
+- [x] Double `runOnce` does not duplicate rows
+- [x] Handler fires with inserted/updated videos (skip identical no-op when detectable)
+- [x] Timer start/stop safe
+- [x] GTest with fake source + temp repo
 
 **Verification:**
-- [ ] `ctest --test-dir build-server -C Release -R ingest --output-on-failure`
+- [x] `ctest --test-dir build-server -C Release -R IngestService --output-on-failure`
 
 **Dependencies:** Task 3, Task 4  
 **Files likely touched:** `src/server/ingest/*`, `tests/server/ingest/ingest_service_test.cpp`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). Added `findBySourceKey` for no-op detection.
 
 ---
 
