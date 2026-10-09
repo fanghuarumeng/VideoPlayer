@@ -1,0 +1,23 @@
+SquareDanceServer local run (Windows)
+
+1. Build:
+   cmake -S . -B build-server -DBUILD_SERVER=ON -DBUILD_CLIENT=OFF
+   cmake --build build-server --config Release --target SquareDanceServer
+
+2. From the repository root (so relative config paths resolve):
+   build-server\Release\SquareDanceServer.exe --config config\server.json.example
+
+3. Try search:
+   curl "http://127.0.0.1:8080/api/v1/videos/search?q=square&limit=20"
+
+4. WebSocket push endpoint:
+   ws://127.0.0.1:8081/ws
+
+5. Trigger ingest again:
+   curl -X POST "http://127.0.0.1:8080/api/v1/ingest/run"
+
+Notes:
+- Authorized catalog: config/authorized_catalog.example.json
+- SQLite DB path defaults to data/videos.db (directory created on start)
+- Archive.org live HTTPS needs OpenSSL-enabled cpp-httplib; authorized catalog works offline
+- Ctrl+C stops the server

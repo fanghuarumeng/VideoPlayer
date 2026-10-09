@@ -8,7 +8,11 @@
 namespace {
 
 void PrintUsage(const char* argv0) {
-  std::cerr << "Usage: " << argv0 << " --config <path-to-server.json>\n";
+  std::cerr << "Usage: " << argv0 << " --config <path-to-server.json>\n"
+            << "  Serves HTTP search API and WebSocket push; runs ingest and "
+               "URL health timers.\n"
+            << "  Example (from repo root):\n"
+            << "    SquareDanceServer.exe --config config/server.json.example\n";
 }
 
 }  // namespace
@@ -43,5 +47,5 @@ int main(int argc, char** argv) {
   }
 
   square_dance::server::ServerApp app(config);
-  return app.RunShellOnce();
+  return app.RunBlocking();
 }

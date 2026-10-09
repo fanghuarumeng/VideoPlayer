@@ -114,6 +114,7 @@ if(BUILD_SERVER)
 
   add_executable(SquareDanceServerTests
     tests/server/server_config_test.cpp
+    tests/server/server_app_test.cpp
     tests/server/video_store/sqlite_repository_test.cpp
     tests/server/video_source/authorized_catalog_test.cpp
     tests/server/video_source/archive_org_parse_test.cpp

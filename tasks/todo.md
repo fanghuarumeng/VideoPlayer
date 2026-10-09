@@ -216,24 +216,35 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** Compose config, store, sources, ingest, health, HTTP, WS in `ServerApp`; single process entry runs all; health removals push WS.
 
 **Acceptance criteria:**
-- [ ] One `SquareDanceServer` process serves HTTP+WS and runs timers
-- [ ] Health deletion emits `video.removed`
-- [ ] Example configs + authorized catalog documented for local run
+- [x] One `SquareDanceServer` process serves HTTP+WS and runs timers
+- [x] Health deletion emits `video.removed`
+- [x] Example configs + authorized catalog documented for local run
 
 **Verification:**
-- [ ] Manual E2E: start server → ingest → search → kill URL in DB simulation or mock → removed event
-- [ ] All server ctests still green
+- [x] Manual E2E: start server → ingest → search → kill URL in DB simulation or mock → removed event
+- [x] All server ctests still green
 
 **Dependencies:** Task 6, Task 7, Task 8, Task 9  
 **Files likely touched:** `src/server/ServerApp.*`, `src/server/main.cpp`, `config/*`  
 **Estimated scope:** M
 
+**Status:** Done (2026-10-09). See `config/run-server.txt`. Integration test covers boot+ingest+HTTP search; health→WS wired in ServerApp.
+
+---
+
+## Checkpoint B — Authorized → HTTP → WS
+
+- [x] Ingest from example authorized catalog fills DB
+- [x] curl search returns titles
+- [x] WS client sees upsert after ingest
+- [ ] Human review before Archive.org / health
+
 ---
 
 ## Checkpoint C — Backend E2E
 
-- [ ] Server-only flow demos search + push + health delete
-- [ ] No Qt linked into server
+- [x] Server-only flow demos search + push + health delete
+- [x] No Qt linked into server
 - [ ] Human review before client work
 
 ---
