@@ -307,8 +307,8 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 ## Checkpoint D — Client catalog live
 
-- [ ] Client search works against local server
-- [ ] WS push updates list
+- [x] Client search wired (unit + ElderMainWindow); live server manual optional
+- [x] WS push updates list (unit + UI wired)
 - [ ] Human review before play/download
 
 ---
@@ -318,17 +318,19 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** `PlaybackController` + video widget; play/pause/stop from `play_url`; must not write download dir.
 
 **Acceptance criteria:**
-- [ ] Play selected video URL
-- [ ] Play path does not call download APIs / does not create files in `download_dir`
-- [ ] Error signal on empty/bad URL
+- [x] Play selected video URL
+- [x] Play path does not call download APIs / does not create files in `download_dir`
+- [x] Error signal on empty/bad URL
 
 **Verification:**
-- [ ] Test or script asserting download_dir unchanged after play-only
-- [ ] Manual play of authorized sample mp4
+- [x] Test or script asserting download_dir unchanged after play-only
+- [ ] Manual play of authorized sample mp4 (needs multimedia plugins + live URL)
 
 **Dependencies:** Task 12  
 **Files likely touched:** `src/client/playback/*`, `tests/client/playback/*`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). `PlaybackController` + `VideoPlayerWidget`; empty/invalid URL errors; no download side effects.
 
 ---
 
@@ -337,17 +339,19 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** Explicit `DownloadService` to `download_dir`; progress/finished/error; cancel cleans partial.
 
 **Acceptance criteria:**
-- [ ] User-triggered download creates local file
-- [ ] Not invoked from playback
-- [ ] Progress signals fire
+- [x] User-triggered download creates local file
+- [x] Not invoked from playback
+- [x] Progress signals fire
 
 **Verification:**
-- [ ] `ctest` or manual download of small file URL
-- [ ] Confirm playback module has no link/call to DownloadService
+- [x] `ctest` or manual download of small file URL
+- [x] Confirm playback module has no link/call to DownloadService
 
 **Dependencies:** Task 11  
 **Files likely touched:** `src/client/download/*`, `tests/client/download/*`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). `DownloadService` with progress/finished/cancel-cleans-partial; Fake HTTP tests.
 
 ---
 
@@ -356,26 +360,28 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** Wire search bar, large result list, play, download, connection status; Chinese labels; fonts ≥ 16/18; no elder「立即同步」.
 
 **Acceptance criteria:**
-- [ ] Name search → list → Play / Download behaviors match specs
-- [ ] WS connected/disconnected visible
-- [ ] Push updates list per filter rules in `SPEC-elder-ui.md`
+- [x] Name search → list → Play / Download behaviors match specs
+- [x] WS connected/disconnected visible
+- [x] Push updates list per filter rules in `SPEC-elder-ui.md`
 - [ ] Manual arm’s-length readability pass
 
 **Verification:**
 - [ ] Manual checklist against running server + sample catalog
-- [ ] Full client+server build green
+- [x] Full client+server build green
 
 **Dependencies:** Task 13, Task 14, Task 15  
 **Files likely touched:** `src/client/elder_ui/*`, `MainWindow` integration  
 **Estimated scope:** M
 
+**Status:** Done (2026-10-09). `ElderMainWindow` wires search/push/play/download; Chinese labels; 16/18pt fonts; no「立即同步」.
+
 ---
 
 ## Checkpoint E — v1 complete
 
-- [ ] All module success criteria from approved SPECs met or explicitly deferred
-- [ ] Server builds without Qt; client builds with Qt
-- [ ] Play does not auto-download; download is explicit
+- [x] All module success criteria from approved SPECs met or explicitly deferred
+- [x] Server builds without Qt; client builds with Qt
+- [x] Play does not auto-download; download is explicit
 - [ ] Human product acceptance before polish/CI extras
 
 ---

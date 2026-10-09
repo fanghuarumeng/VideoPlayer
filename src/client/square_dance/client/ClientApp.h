@@ -9,7 +9,7 @@ class QApplication;
 namespace square_dance {
 namespace client {
 
-class MainWindow;
+class ElderMainWindow;
 
 class ClientApp {
  public:
@@ -26,7 +26,7 @@ class ClientApp {
 
   ClientConfig config_;
   std::unique_ptr<QApplication> app_;
-  std::unique_ptr<MainWindow> window_;
+  std::unique_ptr<ElderMainWindow> window_;
 };
 
 }  // namespace client

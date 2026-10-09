@@ -1,6 +1,6 @@
 #include "square_dance/client/ClientApp.h"
 
-#include "square_dance/client/MainWindow.h"
+#include "square_dance/client/elder_ui/ElderMainWindow.h"
 
 #include <QApplication>
 
@@ -10,7 +10,7 @@ namespace client {
 ClientApp::ClientApp(int& argc, char** argv, const ClientConfig& config)
     : config_(config),
       app_(new QApplication(argc, argv)),
-      window_(new MainWindow()) {}
+      window_(new ElderMainWindow(config_)) {}
 
 ClientApp::~ClientApp() {}
 

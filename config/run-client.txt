@@ -19,7 +19,10 @@ Local client build / run (Task 11+)
 
    build-client\Release\SquareDanceApp.exe --config config\client.json.example
 
+UI (Task 16): 搜索 / 播放 / 暂停 / 停止 / 下载; status shows 已连接/未连接.
+Downloads go to download_dir from client.json (default: downloads/).
+
 Notes:
 - Client must not link QtSql; catalog comes from HTTP/WS only.
-- Backend should be running on http://127.0.0.1:8080 and ws://127.0.0.1:8081
-  for later search/push tasks (see config/run-server.txt).
+- Start backend first (see config/run-server.txt) on :8080 / :8081.
+- Empty search query is allowed (push prepends); non-empty filters push upserts by title.

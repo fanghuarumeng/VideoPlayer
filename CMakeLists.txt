@@ -146,7 +146,7 @@ if(BUILD_CLIENT)
   endif()
 
   set(CMAKE_AUTOMOC ON)
-  find_package(Qt5 REQUIRED COMPONENTS Widgets Network WebSockets Test)
+  find_package(Qt5 REQUIRED COMPONENTS Widgets Network WebSockets Multimedia MultimediaWidgets Test)
 
   add_library(square_dance_client_lib
     src/client/square_dance/client/ClientConfig.cpp
@@ -157,6 +157,14 @@ if(BUILD_CLIENT)
     src/client/square_dance/client/api/CatalogModel.cpp
     src/client/square_dance/client/api/push_json.cpp
     src/client/square_dance/client/api/PushClient.cpp
+    src/client/square_dance/client/playback/PlaybackController.cpp
+    src/client/square_dance/client/playback/VideoPlayerWidget.cpp
+    src/client/square_dance/client/download/DownloadService.cpp
+    src/client/square_dance/client/elder_ui/ConnectionStatusWidget.cpp
+    src/client/square_dance/client/elder_ui/SearchBar.cpp
+    src/client/square_dance/client/elder_ui/VideoResultList.cpp
+    src/client/square_dance/client/elder_ui/PlayerPane.cpp
+    src/client/square_dance/client/elder_ui/ElderMainWindow.cpp
   )
   target_include_directories(square_dance_client_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/client"
@@ -168,6 +176,8 @@ if(BUILD_CLIENT)
       Qt5::Widgets
       Qt5::Network
       Qt5::WebSockets
+      Qt5::Multimedia
+      Qt5::MultimediaWidgets
   )
 
   add_executable(SquareDanceApp
@@ -192,6 +202,8 @@ if(BUILD_CLIENT)
     tests/client/api/push_json_test.cpp
     tests/client/api/push_model_test.cpp
     tests/client/api/push_client_test.cpp
+    tests/client/playback/playback_no_download_test.cpp
+    tests/client/download/download_service_test.cpp
   )
   target_link_libraries(SquareDanceClientTests
     PRIVATE
