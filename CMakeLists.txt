@@ -23,10 +23,24 @@ if(BUILD_SERVER)
   include(cmake/ServerDeps.cmake)
   target_link_libraries(square_dance_common INTERFACE nlohmann_json::nlohmann_json)
 
+  if(NOT EXISTS "${CMAKE_SOURCE_DIR}/third_party/sqlite/sqlite3.c")
+    message(FATAL_ERROR "Missing third_party/sqlite/sqlite3.c amalgamation")
+  endif()
+  add_library(sqlite3_amalgamation STATIC
+    third_party/sqlite/sqlite3.c
+  )
+  target_include_directories(sqlite3_amalgamation PUBLIC
+    "${CMAKE_SOURCE_DIR}/third_party/sqlite"
+  )
+  if(MSVC)
+    target_compile_definitions(sqlite3_amalgamation PRIVATE SQLITE_API=)
+  endif()
+
   add_library(square_dance_server_lib
     src/server/square_dance/server/ServerConfig.cpp
     src/server/square_dance/server/ServerApp.cpp
     src/server/square_dance/server/log.cpp
+    src/server/square_dance/server/video_store/SqliteVideoRepository.cpp
   )
   target_include_directories(square_dance_server_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/server"
@@ -35,6 +49,7 @@ if(BUILD_SERVER)
     PUBLIC
       square_dance_common
       nlohmann_json::nlohmann_json
+      sqlite3_amalgamation
   )
 
   add_executable(SquareDanceServer
@@ -58,6 +73,7 @@ if(BUILD_SERVER)
 
   add_executable(SquareDanceServerTests
     tests/server/server_config_test.cpp
+    tests/server/video_store/sqlite_repository_test.cpp
   )
   target_link_libraries(SquareDanceServerTests
     PRIVATE

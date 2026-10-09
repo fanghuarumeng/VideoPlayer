@@ -5,3 +5,7 @@
 *.user
 *.suo
 third_party/googletest-*.zip
+
+third_party/sqlite_extract/
+third_party/sqlite-amalgamation.zip
+

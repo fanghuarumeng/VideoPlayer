@@ -53,24 +53,26 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** Implement `IVideoRepository` + `SqliteVideoRepository` with schema version, upsert uniqueness, searchByName, hard delete.
 
 **Acceptance criteria:**
-- [ ] Upsert insert + update by `(source_type, external_id)`
-- [ ] `searchByName` substring; empty query → empty list
-- [ ] `removeById` physically deletes
-- [ ] GTest suite green on temp DB
+- [x] Upsert insert + update by `(source_type, external_id)`
+- [x] `searchByName` substring; empty query → empty list
+- [x] `removeById` physically deletes
+- [x] GTest suite green on temp DB
 
 **Verification:**
-- [ ] `ctest --test-dir build-server -C Release -R video_store --output-on-failure`
+- [x] `ctest --test-dir build-server -C Release -R SqliteVideoRepository --output-on-failure`
 
 **Dependencies:** Task 2  
 **Files likely touched:** `src/server/video_store/*`, `tests/server/video_store/sqlite_repository_test.cpp`  
 **Estimated scope:** M
 
+**Status:** Done (2026-10-09). SQLite amalgamation vendored under `third_party/sqlite`.
+
 ---
 
 ## Checkpoint A — Backend foundation
 
-- [ ] Server configures/builds without Qt
-- [ ] video_store tests pass
+- [x] Server configures/builds without Qt
+- [x] video_store tests pass
 - [ ] Review with human before Phase B
 
 ---
