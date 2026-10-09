@@ -29,6 +29,12 @@ if(BUILD_SERVER)
   if(NOT EXISTS "${CMAKE_SOURCE_DIR}/third_party/cpp-httplib/httplib.h")
     message(FATAL_ERROR "Missing third_party/cpp-httplib/httplib.h")
   endif()
+  if(NOT EXISTS "${CMAKE_SOURCE_DIR}/third_party/websocketpp/websocketpp/server.hpp")
+    message(FATAL_ERROR "Missing third_party/websocketpp")
+  endif()
+  if(NOT EXISTS "${CMAKE_SOURCE_DIR}/third_party/asio/asio.hpp")
+    message(FATAL_ERROR "Missing third_party/asio (standalone include tree)")
+  endif()
   add_library(sqlite3_amalgamation STATIC
     third_party/sqlite/sqlite3.c
   )
@@ -47,6 +53,20 @@ if(BUILD_SERVER)
     target_link_libraries(cpp_httplib INTERFACE ws2_32)
   endif()
 
+  add_library(websocketpp_asio INTERFACE)
+  target_include_directories(websocketpp_asio INTERFACE
+    "${CMAKE_SOURCE_DIR}/third_party/websocketpp"
+    "${CMAKE_SOURCE_DIR}/third_party/asio"
+  )
+  target_compile_definitions(websocketpp_asio INTERFACE
+    ASIO_STANDALONE
+    _WEBSOCKETPP_CPP11_STL_
+  )
+  if(WIN32)
+    target_compile_definitions(websocketpp_asio INTERFACE _WIN32_WINNT=0x0601)
+    target_link_libraries(websocketpp_asio INTERFACE ws2_32)
+  endif()
+
   add_library(square_dance_server_lib
     src/server/square_dance/server/ServerConfig.cpp
     src/server/square_dance/server/ServerApp.cpp
@@ -56,6 +76,7 @@ if(BUILD_SERVER)
     src/server/square_dance/server/ingest/IngestService.cpp
     src/server/square_dance/server/api/video_json.cpp
     src/server/square_dance/server/api/HttpApiServer.cpp
+    src/server/square_dance/server/api/WsPushServer.cpp
   )
   target_include_directories(square_dance_server_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/server"
@@ -66,6 +87,7 @@ if(BUILD_SERVER)
       nlohmann_json::nlohmann_json
       sqlite3_amalgamation
       cpp_httplib
+      websocketpp_asio
   )
 
   add_executable(SquareDanceServer
@@ -94,6 +116,7 @@ if(BUILD_SERVER)
     tests/server/ingest/ingest_service_test.cpp
     tests/server/api/video_json_test.cpp
     tests/server/api/http_search_test.cpp
+    tests/server/api/ws_push_test.cpp
   )
   target_link_libraries(SquareDanceServerTests
     PRIVATE

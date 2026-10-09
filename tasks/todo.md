@@ -145,18 +145,20 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** WS server on `/ws` port 8081; broadcast `video.upserted` / `video.removed`; connect ingest handler to upsert push.
 
 **Acceptance criteria:**
-- [ ] Client can connect to `ws://127.0.0.1:8081/ws`
-- [ ] Ingest-driven upsert produces `video.upserted` JSON
-- [ ] Unknown client messages ignored; ping optional
-- [ ] Builds with websocketpp + Asio (standalone preferred)
+- [x] Client can connect to `ws://127.0.0.1:8081/ws`
+- [x] Ingest-driven upsert produces `video.upserted` JSON
+- [x] Unknown client messages ignored; ping optional
+- [x] Builds with websocketpp + Asio (standalone preferred)
 
 **Verification:**
-- [ ] Automated test if feasible; else manual WS client script documented in task notes
-- [ ] Build Release `SquareDanceServer` succeeds
+- [x] Automated test if feasible; else manual WS client script documented in task notes
+- [x] Build Release `SquareDanceServer` succeeds
 
 **Dependencies:** Task 5, Task 6  
 **Files likely touched:** `src/server/api/WsPushServer.*`, CMake FetchContent for websocketpp/asio, tests or `tools/ws_smoke.*`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). `BroadcastUpserted`/`BroadcastRemoved` ready; ServerApp wires ingest→WS in Task 10.
 
 ---
 
