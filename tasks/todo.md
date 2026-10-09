@@ -30,19 +30,21 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** Add `SquareDanceServer` executable: `main`, `ServerConfig` JSON load, logging, GoogleTest target for config parse. No business modules yet.
 
 **Acceptance criteria:**
-- [ ] `SquareDanceServer` builds and runs `--config` / example config
-- [ ] Config fields match `SPEC-server-shell.md` (ports, paths, intervals, keywords, threshold)
-- [ ] Server targets do not link Qt
-- [ ] Config GTest passes
+- [x] `SquareDanceServer` builds and runs `--config` / example config
+- [x] Config fields match `SPEC-server-shell.md` (ports, paths, intervals, keywords, threshold)
+- [x] Server targets do not link Qt
+- [x] Config GTest passes
 
 **Verification:**
-- [ ] `cmake --build build-server --config Release --target SquareDanceServer`
-- [ ] `ctest --test-dir build-server -C Release -R server_config --output-on-failure`
-- [ ] Manual: process starts and exits cleanly
+- [x] `cmake --build build-server --config Release --target SquareDanceServer`
+- [x] `ctest --test-dir build-server -C Release -R ServerConfig --output-on-failure`
+- [x] Manual: process starts and exits cleanly
 
 **Dependencies:** Task 1  
 **Files likely touched:** `src/server/main.cpp`, `ServerConfig.*`, `config/server.json.example`, `tests/server/server_config_test.cpp`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). Shell loads config and exits; listen/API wired in later tasks.
 
 ---
 

@@ -1,0 +1,11 @@
+{
+  "bind_host": "127.0.0.1",
+  "http_port": 8080,
+  "ws_port": 8081,
+  "sqlite_path": "data/videos.db",
+  "ingest_interval_ms": 43200000,
+  "health_interval_ms": 43200000,
+  "url_failure_threshold": 3,
+  "ingest_keywords": ["square dance", "guangchangwu"],
+  "authorized_catalog_path": "config/authorized_catalog.example.json"
+}
