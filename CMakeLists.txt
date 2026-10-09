@@ -26,6 +26,9 @@ if(BUILD_SERVER)
   if(NOT EXISTS "${CMAKE_SOURCE_DIR}/third_party/sqlite/sqlite3.c")
     message(FATAL_ERROR "Missing third_party/sqlite/sqlite3.c amalgamation")
   endif()
+  if(NOT EXISTS "${CMAKE_SOURCE_DIR}/third_party/cpp-httplib/httplib.h")
+    message(FATAL_ERROR "Missing third_party/cpp-httplib/httplib.h")
+  endif()
   add_library(sqlite3_amalgamation STATIC
     third_party/sqlite/sqlite3.c
   )
@@ -36,6 +39,14 @@ if(BUILD_SERVER)
     target_compile_definitions(sqlite3_amalgamation PRIVATE SQLITE_API=)
   endif()
 
+  add_library(cpp_httplib INTERFACE)
+  target_include_directories(cpp_httplib INTERFACE
+    "${CMAKE_SOURCE_DIR}/third_party/cpp-httplib"
+  )
+  if(WIN32)
+    target_link_libraries(cpp_httplib INTERFACE ws2_32)
+  endif()
+
   add_library(square_dance_server_lib
     src/server/square_dance/server/ServerConfig.cpp
     src/server/square_dance/server/ServerApp.cpp
@@ -43,6 +54,8 @@ if(BUILD_SERVER)
     src/server/square_dance/server/video_store/SqliteVideoRepository.cpp
     src/server/square_dance/server/video_source/AuthorizedCatalogSource.cpp
     src/server/square_dance/server/ingest/IngestService.cpp
+    src/server/square_dance/server/api/video_json.cpp
+    src/server/square_dance/server/api/HttpApiServer.cpp
   )
   target_include_directories(square_dance_server_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/server"
@@ -52,6 +65,7 @@ if(BUILD_SERVER)
       square_dance_common
       nlohmann_json::nlohmann_json
       sqlite3_amalgamation
+      cpp_httplib
   )
 
   add_executable(SquareDanceServer
@@ -78,6 +92,8 @@ if(BUILD_SERVER)
     tests/server/video_store/sqlite_repository_test.cpp
     tests/server/video_source/authorized_catalog_test.cpp
     tests/server/ingest/ingest_service_test.cpp
+    tests/server/api/video_json_test.cpp
+    tests/server/api/http_search_test.cpp
   )
   target_link_libraries(SquareDanceServerTests
     PRIVATE

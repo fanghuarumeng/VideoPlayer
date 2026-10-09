@@ -123,18 +123,20 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** cpp-httplib server exposing search, get-by-id, POST ingest/run; JSON via common helpers.
 
 **Acceptance criteria:**
-- [ ] `GET /api/v1/videos/search` returns matching videos
-- [ ] `GET /api/v1/videos/{id}` 200/404
-- [ ] `POST /api/v1/ingest/run` triggers `runOnce`
-- [ ] Ephemeral-port GTest or equivalent
+- [x] `GET /api/v1/videos/search` returns matching videos
+- [x] `GET /api/v1/videos/{id}` 200/404
+- [x] `POST /api/v1/ingest/run` triggers `runOnce`
+- [x] Ephemeral-port GTest or equivalent
 
 **Verification:**
-- [ ] `ctest --test-dir build-server -C Release -R server_api --output-on-failure` (or `http_search`)
+- [x] `ctest --test-dir build-server -C Release -R HttpSearch --output-on-failure` (and ServerVideoJson)
 - [ ] Manual: `curl` against running server after Checkpoint B wiring
 
 **Dependencies:** Task 3, Task 5  
 **Files likely touched:** `src/server/api/HttpApiServer.*`, `video_json.*`, `tests/server/api/http_search_test.cpp`  
 **Estimated scope:** M
+
+**Status:** Done (2026-10-09). httplib vendored; ingest POST returns 503 when ingest not wired.
 
 ---
 

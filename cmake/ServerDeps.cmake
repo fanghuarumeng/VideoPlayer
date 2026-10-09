@@ -23,5 +23,5 @@ endif()
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 add_subdirectory("${SQUARE_DANCE_GTEST_ROOT}" "${CMAKE_BINARY_DIR}/_deps/googletest" EXCLUDE_FROM_ALL)
 
-# Vendored separately: third_party/sqlite (amalgamation).
-# Later tasks may vendor: cpp-httplib, websocketpp under third_party/.
+# Vendored separately: third_party/sqlite, third_party/cpp-httplib.
+# Later tasks may vendor: websocketpp (+ Asio) under third_party/.
