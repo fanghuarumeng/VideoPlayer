@@ -30,6 +30,9 @@ class FfmpegPlaybackEngine : public QThread {
   void requestStop();
   void setPaused(bool paused);
   void seekTo(double position_sec);
+  // Allowed rates: 0.5, 1.0, 2.0, 3.0. Other values snap to nearest.
+  void setPlaybackRate(double rate);
+  double playbackRate() const;
   bool ShouldAbort() const;
   quint64 currentJobId() const;
 
@@ -85,6 +88,7 @@ class FfmpegPlaybackEngine : public QThread {
   qint64 media_bytes_high_water_;
   bool pending_seek_;
   double pending_seek_sec_;
+  double playback_rate_;
   quint64 job_id_;
   quint64 next_job_id_;
 

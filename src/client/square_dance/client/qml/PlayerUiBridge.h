@@ -43,6 +43,7 @@ class PlayerUiBridge : public QObject {
                  historyModelChanged)
   Q_PROPERTY(bool liveConnected READ liveConnected NOTIFY liveChanged)
   Q_PROPERTY(QString overlay READ overlay NOTIFY overlayChanged)
+  Q_PROPERTY(double playbackRate READ playbackRate NOTIFY playbackRateChanged)
 
  public:
   explicit PlayerUiBridge(const ClientConfig& config, QObject* parent = 0);
@@ -59,6 +60,7 @@ class PlayerUiBridge : public QObject {
   bool hasFrame() const;
   bool liveConnected() const;
   QString overlay() const;
+  double playbackRate() const;
   QObject* playlistModelConstant() const;
   QObject* libraryModelConstant() const;
   QObject* searchModelConstant() const;
@@ -86,6 +88,7 @@ class PlayerUiBridge : public QObject {
   Q_INVOKABLE void addSearchAt(int index);
   Q_INVOKABLE void playHistoryAt(int index);
   Q_INVOKABLE void clearHistory();
+  Q_INVOKABLE void setPlaybackRate(double rate);
 
  signals:
   void titleChanged();
@@ -102,6 +105,7 @@ class PlayerUiBridge : public QObject {
   void historyModelChanged();
   void liveChanged();
   void overlayChanged();
+  void playbackRateChanged();
 
  private slots:
   void onPlaybackProgress(double position_sec, double duration_sec);

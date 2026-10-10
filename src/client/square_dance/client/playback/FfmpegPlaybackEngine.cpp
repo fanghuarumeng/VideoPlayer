@@ -61,6 +61,7 @@ FfmpegPlaybackEngine::FfmpegPlaybackEngine(QObject* parent)
       media_bytes_high_water_(0),
       pending_seek_(false),
       pending_seek_sec_(0.0),
+      playback_rate_(1.0),
       job_id_(0),
       next_job_id_(0),
       format_ctx_(NULL),
@@ -124,6 +125,33 @@ void FfmpegPlaybackEngine::requestStop() {
   }
   requestInterruption();
   pause_wait_.wakeAll();
+}
+
+void FfmpegPlaybackEngine::setPlaybackRate(double rate) {
+  // Snap to the supported discrete speeds.
+  static const double kRates[] = {0.5, 1.0, 2.0, 3.0};
+  double best = 1.0;
+  double best_dist = 1e9;
+  for (size_t i = 0; i < sizeof(kRates) / sizeof(kRates[0]); ++i) {
+    const double d = qAbs(rate - kRates[i]);
+    if (d < best_dist) {
+      best_dist = d;
+      best = kRates[i];
+    }
+  }
+  QMutexLocker lock(&mutex_);
+  if (qAbs(playback_rate_ - best) < 0.001) {
+    return;
+  }
+  playback_rate_ = best;
+  // Re-anchor wall clock so the new rate applies from the next frame.
+  clock_started_ = false;
+  pause_wait_.wakeAll();
+}
+
+double FfmpegPlaybackEngine::playbackRate() const {
+  QMutexLocker lock(&mutex_);
+  return playback_rate_;
 }
 
 void FfmpegPlaybackEngine::setPaused(bool paused) {
@@ -525,16 +553,11 @@ void FfmpegPlaybackEngine::run() {
 
 void FfmpegPlaybackEngine::PaceToPts(double pts_sec) {
   // Shared wall clock across audio/video so neither stream races ahead.
-  if (!clock_started_) {
-    clock_started_ = true;
-    pts_origin_sec_ = pts_sec;
-    pause_accumulated_ms_ = 0;
-    pause_wall_mark_valid_ = false;
-    wall_timer_.restart();
-    return;
-  }
-
+  // Rate changes set clock_started_=false; every loop iteration re-checks under
+  // the same lock as rate/origin so we never apply a new rate to an old origin
+  // (that caused multi-second freezes when dropping 1x → 0.5x).
   while (!ShouldAbort()) {
+    int sleep_ms = 0;
     {
       QMutexLocker lock(&mutex_);
       if (paused_) {
@@ -549,17 +572,36 @@ void FfmpegPlaybackEngine::PaceToPts(double pts_sec) {
         pause_accumulated_ms_ += wall_timer_.elapsed() - pause_wall_mark_ms_;
         pause_wall_mark_valid_ = false;
       }
-    }
 
-    const double media_t = pts_sec - pts_origin_sec_;
-    const double wall_t =
-        static_cast<double>(wall_timer_.elapsed() - pause_accumulated_ms_) /
-        1000.0;
-    if (media_t <= wall_t + 0.005) {
-      break;
+      if (!clock_started_) {
+        clock_started_ = true;
+        pts_origin_sec_ = pts_sec;
+        pause_accumulated_ms_ = 0;
+        pause_wall_mark_valid_ = false;
+        wall_timer_.restart();
+        return;
+      }
+
+      double rate = playback_rate_;
+      if (rate < 0.01) {
+        rate = 1.0;
+      }
+      // media_t / rate: at 2x, wall catches up twice as fast (less sleep).
+      const double media_t = (pts_sec - pts_origin_sec_) / rate;
+      const double wall_t =
+          static_cast<double>(wall_timer_.elapsed() - pause_accumulated_ms_) /
+          1000.0;
+      if (media_t <= wall_t + 0.005) {
+        return;
+      }
+      sleep_ms = static_cast<int>((media_t - wall_t) * 1000.0);
+      if (sleep_ms > 30) {
+        sleep_ms = 30;
+      } else if (sleep_ms < 1) {
+        sleep_ms = 1;
+      }
     }
-    const int sleep_ms = static_cast<int>((media_t - wall_t) * 1000.0);
-    msleep(sleep_ms > 30 ? 30 : (sleep_ms > 0 ? sleep_ms : 1));
+    msleep(sleep_ms);
   }
 }
 
@@ -732,7 +774,15 @@ void FfmpegPlaybackEngine::DecodeLoop(quint64 job_id) {
           PaceToPts(pts);
           if (!ShouldAbort()) {
             MaybeEmitPosition(pts, job_id);
-            emit audioSamplesReady(pcm, pts, job_id);
+            // Non-1x: mute rather than pitch-shift / overrun QAudioOutput.
+            double rate = 1.0;
+            {
+              QMutexLocker lock(&mutex_);
+              rate = playback_rate_;
+            }
+            if (qAbs(rate - 1.0) < 0.01) {
+              emit audioSamplesReady(pcm, pts, job_id);
+            }
           }
         }
         av_freep(&out_buf);

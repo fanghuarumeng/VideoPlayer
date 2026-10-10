@@ -78,6 +78,8 @@ PlayerUiBridge::PlayerUiBridge(const ClientConfig& config, QObject* parent)
           &PlayerUiBridge::onPlaybackFinished);
   connect(playback_, &PlaybackController::videoFrameReady, this,
           &PlayerUiBridge::onVideoFrame);
+  connect(playback_, &PlaybackController::playbackRateChanged, this,
+          [this](double) { emit playbackRateChanged(); });
 
   connect(catalog_, &CatalogClient::listFinished, this,
           &PlayerUiBridge::onListFinished);
@@ -140,6 +142,9 @@ bool PlayerUiBridge::playing() const { return playing_; }
 bool PlayerUiBridge::hasFrame() const { return !current_frame_.isNull(); }
 bool PlayerUiBridge::liveConnected() const { return live_connected_; }
 QString PlayerUiBridge::overlay() const { return overlay_; }
+double PlayerUiBridge::playbackRate() const {
+  return playback_ != NULL ? playback_->playbackRate() : 1.0;
+}
 QObject* PlayerUiBridge::playlistModelConstant() const {
   return playlist_model_;
 }
@@ -389,6 +394,12 @@ void PlayerUiBridge::openSearch() {
 }
 
 void PlayerUiBridge::closeOverlay() { SetOverlay(QString()); }
+
+void PlayerUiBridge::setPlaybackRate(double rate) {
+  if (playback_ != NULL) {
+    playback_->setPlaybackRate(rate);
+  }
+}
 
 void PlayerUiBridge::refreshLibrary() {
   SetStatus(QString::fromUtf8("正在刷新视频库…"));

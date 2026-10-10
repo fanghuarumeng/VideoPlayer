@@ -31,6 +31,8 @@ class PlaybackController : public QObject {
   void pause();
   void stop();
   void seekTo(double position_sec);
+  void setPlaybackRate(double rate);
+  double playbackRate() const;
   bool isPaused() const;
 
  signals:
@@ -40,6 +42,7 @@ class PlaybackController : public QObject {
   void bufferProgress(double buffered_ratio);
   void playbackFinished();
   void pausedChanged(bool paused);
+  void playbackRateChanged(double rate);
   // Emitted for each presented video frame (QML shell / alternate surfaces).
   void videoFrameReady(const QImage& frame);
 
@@ -78,6 +81,7 @@ class PlaybackController : public QObject {
   bool scrubbing_;
   double duration_sec_;
   double position_sec_;
+  double playback_rate_;
   QString pending_title_;
   quint64 active_job_id_;
 };

@@ -23,6 +23,7 @@ PlaybackController::PlaybackController(QObject* parent)
       scrubbing_(false),
       duration_sec_(0.0),
       position_sec_(0.0),
+      playback_rate_(1.0),
       active_job_id_(0) {
   connect(engine_, &FfmpegPlaybackEngine::videoFrameReady, this,
           &PlaybackController::onVideoFrame, Qt::QueuedConnection);
@@ -145,6 +146,43 @@ void PlaybackController::seekTo(double position_sec) {
   }
 }
 
+void PlaybackController::setPlaybackRate(double rate) {
+  const double previous = playback_rate_;
+  engine_->setPlaybackRate(rate);
+  const double applied = engine_->playbackRate();
+  if (qAbs(previous - applied) < 0.001) {
+    return;
+  }
+  playback_rate_ = applied;
+
+  // Avoid full stop/start when leaving 1x — that hitch was obvious on 1→0.5.
+  // Only recreate the output when returning to 1x (need a clean play path).
+  const bool was_one = qAbs(previous - 1.0) < 0.01;
+  const bool now_one = qAbs(applied - 1.0) < 0.01;
+  if (audio_out_ != NULL) {
+    if (was_one && !now_one) {
+      audio_out_->reset();
+      audio_device_ = NULL;
+    } else if (!was_one && now_one) {
+      audio_device_ = audio_out_->start();
+      if (paused_ && audio_out_ != NULL) {
+        audio_out_->suspend();
+      }
+    }
+  }
+
+  emit playbackRateChanged(playback_rate_);
+  if (now_one) {
+    emit statusMessage(QString::fromUtf8("倍速：1x"));
+  } else {
+    emit statusMessage(
+        QString::fromUtf8("倍速：%1x（非 1 倍速时静音）")
+            .arg(playback_rate_));
+  }
+}
+
+double PlaybackController::playbackRate() const { return playback_rate_; }
+
 void PlaybackController::play(const Video& video) {
   const QString url_text = video.play_url.trimmed();
   if (url_text.isEmpty()) {
@@ -197,6 +235,7 @@ void PlaybackController::play(const Video& video) {
     emit errorOccurred(QString::fromUtf8("无法开始播放"));
     return;
   }
+  engine_->setPlaybackRate(playback_rate_);
   emit statusMessage(QString::fromUtf8("正在播放：") + video.title);
 }
 

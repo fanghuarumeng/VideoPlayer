@@ -197,6 +197,113 @@ Item {
 
             Item { Layout.fillWidth: true }
 
+            // Playback rate: 0.5x / 1x / 2x / 3x
+            Button {
+                id: rateBtn
+                flat: true
+                hoverEnabled: true
+                implicitHeight: 32
+                implicitWidth: Math.max(48, rateLabel.implicitWidth + 16)
+                ToolTip.visible: hovered
+                ToolTip.delay: 400
+                ToolTip.text: "倍速"
+                onClicked: rateMenu.open()
+                contentItem: Text {
+                    id: rateLabel
+                    text: {
+                        var r = player ? player.playbackRate : 1.0
+                        if (Math.abs(r - 0.5) < 0.01) return "0.5x"
+                        if (Math.abs(r - 2.0) < 0.01) return "2x"
+                        if (Math.abs(r - 3.0) < 0.01) return "3x"
+                        return "1x"
+                    }
+                    color: "#FFFFFF"
+                    font.pixelSize: 13
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: rateBtn.hovered || rateMenu.visible
+                           ? Qt.rgba(1,1,1,0.12) : "transparent"
+                    radius: 6
+                }
+
+                Menu {
+                    id: rateMenu
+                    y: rateBtn.height + 4
+
+                    function rateItemColor(rate, highlighted) {
+                        var r = player ? player.playbackRate : 1.0
+                        if (highlighted)
+                            return Qt.rgba(1,1,1,0.14)
+                        if (Math.abs(r - rate) < 0.01)
+                            return Qt.rgba(80/255, 134/255, 255/255, 0.28)
+                        return "transparent"
+                    }
+
+                    MenuItem {
+                        text: "0.5x"
+                        onTriggered: if (player) player.setPlaybackRate(0.5)
+                        contentItem: Text {
+                            text: parent.text; color: "#FFFFFF"; font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            implicitWidth: 88; implicitHeight: 32
+                            color: rateMenu.rateItemColor(0.5, parent.highlighted)
+                        }
+                    }
+                    MenuItem {
+                        text: "1x"
+                        onTriggered: if (player) player.setPlaybackRate(1.0)
+                        contentItem: Text {
+                            text: parent.text; color: "#FFFFFF"; font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            implicitWidth: 88; implicitHeight: 32
+                            color: rateMenu.rateItemColor(1.0, parent.highlighted)
+                        }
+                    }
+                    MenuItem {
+                        text: "2x"
+                        onTriggered: if (player) player.setPlaybackRate(2.0)
+                        contentItem: Text {
+                            text: parent.text; color: "#FFFFFF"; font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            implicitWidth: 88; implicitHeight: 32
+                            color: rateMenu.rateItemColor(2.0, parent.highlighted)
+                        }
+                    }
+                    MenuItem {
+                        text: "3x"
+                        onTriggered: if (player) player.setPlaybackRate(3.0)
+                        contentItem: Text {
+                            text: parent.text; color: "#FFFFFF"; font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            implicitWidth: 88; implicitHeight: 32
+                            color: rateMenu.rateItemColor(3.0, parent.highlighted)
+                        }
+                    }
+
+                    background: Rectangle {
+                        implicitWidth: 96
+                        color: Qt.rgba(0.10, 0.11, 0.13, 0.96)
+                        border.color: Qt.rgba(1,1,1,0.12)
+                        radius: 8
+                    }
+                }
+            }
+
             ToolButton {
                 flat: true
                 hoverEnabled: true
