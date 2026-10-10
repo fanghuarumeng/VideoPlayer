@@ -178,6 +178,7 @@ if(BUILD_CLIENT)
     src/client/square_dance/client/elder_ui/ConnectionStatusWidget.cpp
     src/client/square_dance/client/elder_ui/SearchBar.cpp
     src/client/square_dance/client/elder_ui/VideoResultList.cpp
+    src/client/square_dance/client/elder_ui/BufferedSeekSlider.cpp
     src/client/square_dance/client/elder_ui/PlayerPane.cpp
     src/client/square_dance/client/elder_ui/ElderMainWindow.cpp
     src/client/square_dance/client/playlist/PlaylistStore.cpp

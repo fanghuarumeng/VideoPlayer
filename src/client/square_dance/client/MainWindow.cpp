@@ -7,10 +7,10 @@ namespace square_dance {
 namespace client {
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
-  setWindowTitle(QString::fromUtf8("广场舞"));
+  setWindowTitle(QString::fromUtf8("Video Player"));
   resize(960, 640);
 
-  QLabel* placeholder = new QLabel(QString::fromUtf8("广场舞客户端"), this);
+  QLabel* placeholder = new QLabel(QString::fromUtf8("Video Player"), this);
   placeholder->setAlignment(Qt::AlignCenter);
   setCentralWidget(placeholder);
 }

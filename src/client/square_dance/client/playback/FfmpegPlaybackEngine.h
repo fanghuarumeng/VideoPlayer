@@ -45,6 +45,8 @@ class FfmpegPlaybackEngine : public QThread {
   void durationReady(double duration_sec, quint64 job_id);
   void positionChanged(double position_sec, quint64 job_id);
   void seekCompleted(double position_sec, quint64 job_id);
+  // 0.0 .. 1.0 approximate fraction of the media body already fetched/read.
+  void bufferProgress(double buffered_ratio, quint64 job_id);
 
  protected:
   void run();
@@ -62,6 +64,7 @@ class FfmpegPlaybackEngine : public QThread {
   double ComputeDurationSec() const;
   bool PerformSeek(double target_sec);
   void MaybeEmitPosition(double pts_sec, quint64 job_id);
+  void MaybeEmitBuffer(quint64 job_id);
 
   mutable QMutex mutex_;
   QWaitCondition pause_wait_;
@@ -77,6 +80,9 @@ class FfmpegPlaybackEngine : public QThread {
   QElapsedTimer wall_timer_;
   double duration_sec_;
   double last_reported_position_sec_;
+  double last_reported_buffer_ratio_;
+  qint64 media_byte_size_;
+  qint64 media_bytes_high_water_;
   bool pending_seek_;
   double pending_seek_sec_;
   quint64 job_id_;

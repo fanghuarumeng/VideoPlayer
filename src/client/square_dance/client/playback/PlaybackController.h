@@ -31,12 +31,15 @@ class PlaybackController : public QObject {
   void pause();
   void stop();
   void seekTo(double position_sec);
+  bool isPaused() const;
 
  signals:
   void errorOccurred(const QString& message);
   void statusMessage(const QString& message);
   void playbackProgress(double position_sec, double duration_sec);
+  void bufferProgress(double buffered_ratio);
   void playbackFinished();
+  void pausedChanged(bool paused);
 
  public slots:
   void setScrubbing(bool scrubbing);
@@ -49,6 +52,7 @@ class PlaybackController : public QObject {
   void onDurationReady(double duration_sec, quint64 job_id);
   void onPositionChanged(double position_sec, quint64 job_id);
   void onSeekCompleted(double position_sec, quint64 job_id);
+  void onBufferProgress(double buffered_ratio, quint64 job_id);
 
  private:
   PlaybackController(const PlaybackController&);
@@ -60,6 +64,7 @@ class PlaybackController : public QObject {
   bool EnsureAudioOutput(QString* error);
   void EmitProgress();
   bool IsActiveJob(quint64 job_id) const;
+  void SetPaused(bool paused);
 
   QPointer<VideoPlayerWidget> player_widget_;
   FfmpegPlaybackEngine* engine_;

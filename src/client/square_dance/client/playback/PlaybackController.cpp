@@ -38,6 +38,8 @@ PlaybackController::PlaybackController(QObject* parent)
           &PlaybackController::onPositionChanged, Qt::QueuedConnection);
   connect(engine_, &FfmpegPlaybackEngine::seekCompleted, this,
           &PlaybackController::onSeekCompleted, Qt::QueuedConnection);
+  connect(engine_, &FfmpegPlaybackEngine::bufferProgress, this,
+          &PlaybackController::onBufferProgress, Qt::QueuedConnection);
 }
 
 PlaybackController::~PlaybackController() {
@@ -115,6 +117,16 @@ void PlaybackController::EmitProgress() {
   emit playbackProgress(position_sec_, duration_sec_);
 }
 
+bool PlaybackController::isPaused() const { return paused_; }
+
+void PlaybackController::SetPaused(bool paused) {
+  if (paused_ == paused) {
+    return;
+  }
+  paused_ = paused;
+  emit pausedChanged(paused_);
+}
+
 void PlaybackController::setScrubbing(bool scrubbing) { scrubbing_ = scrubbing; }
 
 void PlaybackController::seekTo(double position_sec) {
@@ -122,6 +134,15 @@ void PlaybackController::seekTo(double position_sec) {
     return;
   }
   engine_->seekTo(position_sec);
+  // Click-to-seek should continue playback from the new position.
+  if (paused_) {
+    engine_->setPaused(false);
+    if (audio_out_ != NULL) {
+      audio_out_->resume();
+    }
+    SetPaused(false);
+    emit statusMessage(QString::fromUtf8("继续播放：") + pending_title_);
+  }
 }
 
 void PlaybackController::play(const Video& video) {
@@ -150,12 +171,13 @@ void PlaybackController::play(const Video& video) {
   }
 
   pending_title_ = video.title;
-  paused_ = false;
+  SetPaused(false);
   playing_ = true;
   has_presented_frame_ = false;
   duration_sec_ = 0.0;
   position_sec_ = 0.0;
   EmitProgress();
+  emit bufferProgress(0.0);
 
   if (player_widget_ != NULL) {
     player_widget_->setLoadingCoverVisible(true);
@@ -184,19 +206,19 @@ void PlaybackController::pause() {
     return;
   }
   if (!paused_) {
-    paused_ = true;
     engine_->setPaused(true);
     if (audio_out_ != NULL) {
       audio_out_->suspend();
     }
+    SetPaused(true);
     emit statusMessage(QString::fromUtf8("已暂停"));
     return;
   }
-  paused_ = false;
   engine_->setPaused(false);
   if (audio_out_ != NULL) {
     audio_out_->resume();
   }
+  SetPaused(false);
   emit statusMessage(QString::fromUtf8("继续播放：") + pending_title_);
 }
 
@@ -206,11 +228,12 @@ void PlaybackController::stop() {
   engine_->wait(5000);
   TearDownAudio();
   playing_ = false;
-  paused_ = false;
+  SetPaused(false);
   has_presented_frame_ = false;
   duration_sec_ = 0.0;
   position_sec_ = 0.0;
   EmitProgress();
+  emit bufferProgress(0.0);
   if (player_widget_ != NULL) {
     player_widget_->setLoadingCoverVisible(false);
     player_widget_->showHintPage();
@@ -275,6 +298,14 @@ void PlaybackController::onSeekCompleted(double position_sec, quint64 job_id) {
   }
 }
 
+void PlaybackController::onBufferProgress(double buffered_ratio,
+                                          quint64 job_id) {
+  if (!IsActiveJob(job_id)) {
+    return;
+  }
+  emit bufferProgress(qBound(0.0, buffered_ratio, 1.0));
+}
+
 void PlaybackController::onEngineFailed(const QString& message,
                                         quint64 job_id) {
   if (!IsActiveJob(job_id)) {
@@ -282,6 +313,7 @@ void PlaybackController::onEngineFailed(const QString& message,
   }
   active_job_id_ = 0;
   playing_ = false;
+  SetPaused(false);
   TearDownAudio();
   if (player_widget_ != NULL) {
     player_widget_->setLoadingCoverVisible(false);
@@ -297,10 +329,12 @@ void PlaybackController::onEngineEnded(quint64 job_id) {
   }
   active_job_id_ = 0;
   playing_ = false;
+  SetPaused(false);
   if (duration_sec_ > 0.0) {
     position_sec_ = duration_sec_;
     EmitProgress();
   }
+  emit bufferProgress(1.0);
   TearDownAudio();
   if (player_widget_ != NULL) {
     player_widget_->setLoadingCoverVisible(false);

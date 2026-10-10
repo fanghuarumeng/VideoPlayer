@@ -56,6 +56,9 @@ FfmpegPlaybackEngine::FfmpegPlaybackEngine(QObject* parent)
       pause_wall_mark_ms_(0),
       duration_sec_(0.0),
       last_reported_position_sec_(-1.0),
+      last_reported_buffer_ratio_(-1.0),
+      media_byte_size_(0),
+      media_bytes_high_water_(0),
       pending_seek_(false),
       pending_seek_sec_(0.0),
       job_id_(0),
@@ -99,6 +102,9 @@ quint64 FfmpegPlaybackEngine::startPlayback(const QString& url) {
     pending_seek_ = false;
     duration_sec_ = 0.0;
     last_reported_position_sec_ = -1.0;
+    last_reported_buffer_ratio_ = -1.0;
+    media_byte_size_ = 0;
+    media_bytes_high_water_ = 0;
   }
   start();
   return job;
@@ -206,6 +212,45 @@ void FfmpegPlaybackEngine::MaybeEmitPosition(double pts_sec, quint64 job_id) {
       (duration_sec_ > 0.0 && duration_sec_ - pos < 0.05)) {
     last_reported_position_sec_ = pos;
     emit positionChanged(pos, job_id);
+  }
+  MaybeEmitBuffer(job_id);
+}
+
+void FfmpegPlaybackEngine::MaybeEmitBuffer(quint64 job_id) {
+  AVFormatContext* fmt = static_cast<AVFormatContext*>(format_ctx_);
+  if (fmt == NULL || fmt->pb == NULL) {
+    return;
+  }
+  if (media_byte_size_ <= 0) {
+    const int64_t sz = avio_size(fmt->pb);
+    if (sz > 0) {
+      media_byte_size_ = sz;
+    }
+  }
+  const int64_t pos = avio_tell(fmt->pb);
+  if (pos > media_bytes_high_water_) {
+    media_bytes_high_water_ = pos;
+  }
+  // Also count any unread bytes still sitting in the AVIO buffer as fetched.
+  if (fmt->pb->buf_end != NULL && fmt->pb->buffer != NULL) {
+    const int64_t buffered_end =
+        pos + (fmt->pb->buf_end - fmt->pb->buf_ptr);
+    if (buffered_end > media_bytes_high_water_) {
+      media_bytes_high_water_ = buffered_end;
+    }
+  }
+  if (media_byte_size_ <= 0) {
+    return;
+  }
+  double ratio = static_cast<double>(media_bytes_high_water_) /
+                 static_cast<double>(media_byte_size_);
+  if (ratio > 1.0) {
+    ratio = 1.0;
+  }
+  if (last_reported_buffer_ratio_ < 0.0 ||
+      ratio - last_reported_buffer_ratio_ >= 0.01 || ratio >= 0.999) {
+    last_reported_buffer_ratio_ = ratio;
+    emit bufferProgress(ratio, job_id);
   }
 }
 
@@ -463,9 +508,13 @@ void FfmpegPlaybackEngine::run() {
 
   duration_sec_ = ComputeDurationSec();
   last_reported_position_sec_ = -1.0;
+  last_reported_buffer_ratio_ = -1.0;
+  media_bytes_high_water_ = 0;
+  media_byte_size_ = 0;
   pending_seek_ = false;
   emit durationReady(duration_sec_, job);
   emit positionChanged(0.0, job);
+  MaybeEmitBuffer(job);
 
   DecodeLoop(job);
   CloseInput();

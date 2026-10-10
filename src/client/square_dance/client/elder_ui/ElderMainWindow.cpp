@@ -67,7 +67,7 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
   history_store_ = new PlayHistoryStore(ResolveHistoryPath(), 100);
   QString hist_err;
   history_store_->load(&hist_err);
-  setWindowTitle(QString::fromUtf8("Square Dance"));
+  setWindowTitle(QString::fromUtf8("Video Player"));
   setWindowIcon(AppIcons::Logo());
   resize(1280, 800);
 
@@ -86,7 +86,7 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
 
   QLabel* logo = new QLabel(this);
   logo->setPixmap(AppIcons::Logo().pixmap(36, 36));
-  QLabel* brand = new QLabel(QString::fromUtf8("Square Dance"), this);
+  QLabel* brand = new QLabel(QString::fromUtf8("Video Player"), this);
   brand->setFont(AppTheme::TitleFont());
   brand->setStyleSheet(AppTheme::BrandTitleStyle());
   QLabel* tagline =
@@ -202,6 +202,10 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
           &PlayerPane::setPlaybackProgress);
   connect(playback_, &PlaybackController::playbackProgress, this,
           &ElderMainWindow::onPlaybackProgressForHistory);
+  connect(playback_, &PlaybackController::bufferProgress, player_pane_,
+          &PlayerPane::setBufferProgress);
+  connect(playback_, &PlaybackController::pausedChanged, player_pane_,
+          &PlayerPane::setPausedState);
   connect(playback_, &PlaybackController::playbackFinished, this,
           &ElderMainWindow::onPlaybackFinished);
   connect(player_pane_, &PlayerPane::seekRequested, playback_,
@@ -488,7 +492,6 @@ void ElderMainWindow::onStopClicked() {
   playing_from_playlist_ = false;
   playback_->stop();
   player_pane_->resetPlaybackProgress();
-  // Best-effort persist last known progress already saved by progress hook.
 }
 
 void ElderMainWindow::onDownloadClicked() {

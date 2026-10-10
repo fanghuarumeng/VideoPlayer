@@ -3,11 +3,12 @@
 #include <QWidget>
 
 class QLabel;
-class QSlider;
+class QPushButton;
 
 namespace square_dance {
 namespace client {
 
+class BufferedSeekSlider;
 class VideoPlayerWidget;
 
 class PlayerPane : public QWidget {
@@ -18,7 +19,9 @@ class PlayerPane : public QWidget {
 
   VideoPlayerWidget* playerWidget() const;
   void setPlaybackProgress(double position_sec, double duration_sec);
+  void setBufferProgress(double buffered_ratio);
   void resetPlaybackProgress();
+  void setPausedState(bool paused);
 
  signals:
   void playClicked();
@@ -29,17 +32,16 @@ class PlayerPane : public QWidget {
   void scrubbingChanged(bool scrubbing);
 
  private slots:
-  void onSliderPressed();
-  void onSliderReleased();
-  void onSliderMoved(int value);
+  void onSeekCommitted(double ratio);
 
  private:
   static QString FormatTime(double seconds);
 
   VideoPlayerWidget* player_;
-  QSlider* progress_slider_;
+  BufferedSeekSlider* progress_slider_;
   QLabel* time_current_;
   QLabel* time_total_;
+  QPushButton* pause_btn_;
   double duration_sec_;
   bool scrubbing_;
 };
