@@ -147,6 +147,7 @@ if(BUILD_CLIENT)
 
   set(CMAKE_AUTOMOC ON)
   find_package(Qt5 REQUIRED COMPONENTS Widgets Network WebSockets Multimedia Test)
+  include(cmake/ClientFFmpeg.cmake)
 
   add_library(square_dance_client_lib
     src/client/square_dance/client/ClientConfig.cpp
@@ -157,7 +158,7 @@ if(BUILD_CLIENT)
     src/client/square_dance/client/api/CatalogModel.cpp
     src/client/square_dance/client/api/push_json.cpp
     src/client/square_dance/client/api/PushClient.cpp
-    src/client/square_dance/client/playback/FfplayLocator.cpp
+    src/client/square_dance/client/playback/FfmpegPlaybackEngine.cpp
     src/client/square_dance/client/playback/PlaybackController.cpp
     src/client/square_dance/client/playback/VideoPlayerWidget.cpp
     src/client/square_dance/client/download/DownloadService.cpp
@@ -178,11 +179,7 @@ if(BUILD_CLIENT)
       Qt5::Network
       Qt5::WebSockets
       Qt5::Multimedia
-  )
-  # Let playback find vendored ffplay during tests / local runs from build tree.
-  file(TO_CMAKE_PATH "${CMAKE_SOURCE_DIR}" _square_dance_client_src)
-  target_compile_definitions(square_dance_client_lib PRIVATE
-    "SQUARE_DANCE_SOURCE_DIR=\"${_square_dance_client_src}\""
+      square_dance_ffmpeg
   )
 
   add_executable(SquareDanceApp
@@ -220,8 +217,7 @@ if(BUILD_CLIENT)
   target_compile_definitions(SquareDanceClientTests PRIVATE
     "SQUARE_DANCE_SOURCE_DIR=\"${_square_dance_client_source_dir}\""
   )
-
-  # Deploy Qt runtime next to exes so tests/app start without a hand-tuned PATH.
+  # Deploy Qt + FFmpeg shared DLLs next to exes.
   if(WIN32)
     get_filename_component(_qt5_prefix "${Qt5_DIR}/../../.." ABSOLUTE)
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt
@@ -237,17 +233,8 @@ if(BUILD_CLIENT)
           "$<TARGET_FILE:${_deploy_target}>"
         COMMENT "windeployqt ${_deploy_target}"
       )
+      square_dance_copy_ffmpeg_dlls(${_deploy_target})
     endforeach()
-    if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/ffmpeg/bin/ffplay.exe")
-      add_custom_command(TARGET SquareDanceApp POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E make_directory
-          "$<TARGET_FILE_DIR:SquareDanceApp>/ffmpeg/bin"
-        COMMAND "${CMAKE_COMMAND}" -E copy_directory
-          "${CMAKE_SOURCE_DIR}/third_party/ffmpeg/bin"
-          "$<TARGET_FILE_DIR:SquareDanceApp>/ffmpeg/bin"
-        COMMENT "copy vendored ffplay next to SquareDanceApp"
-      )
-    endif()
   endif()
 
   include(GoogleTest)

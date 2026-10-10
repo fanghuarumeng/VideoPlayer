@@ -392,7 +392,7 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Files likely touched:** `src/client/playback/`*, `tests/client/playback/`*  
 **Estimated scope:** M
 
-**Status:** Done (2026-10-09; playback path revised 2026-10-10). `PlaybackController` + `VideoPlayerWidget` via ffplay/ffmpeg pipelines; empty/invalid URL errors; no download side effects. Playback quality (A/V sync, embedded UX) deferred to Phase F polish.
+**Status:** Done (2026-10-10). In-process `FfmpegPlaybackEngine` (libav*) + `PlaybackController`; PTS-paced decode; empty/invalid URL errors; no download side effects. Shared FFmpeg vendored per `config/ffmpeg-vendor.txt`.
 
 ---
 
@@ -481,6 +481,45 @@ Track follow-ups after Checkpoint E. Pick slices as needed.
 **Dependencies:** Checkpoint E  
 **Files likely touched:** `scripts/ci-server.ps1`, `scripts/ci-server.sh`, `.github/workflows/server-ci.yml`  
 **Estimated scope:** M
+
+---
+
+### Task 18: Playback in-process libav (replace ffmpeg.exe pipelines)
+
+**Description:** Link vendored FFmpeg shared libs; single demux/decode thread; realtime PTS pacing; paint frames in `VideoPlayerWidget`.
+
+**Acceptance criteria:**
+
+- [x] CMake links `avformat`/`avcodec`/`avutil`/`swscale`/`swresample` from `third_party/ffmpeg`
+- [x] No primary play path via `QProcess` + `ffmpeg.exe`
+- [x] Play does not touch download dir; client playback tests pass
+- [ ] Manual: motion + audio acceptable on sample URL (human)
+
+**Verification:**
+
+- [x] Client builds with shared FFmpeg layout (`config/ffmpeg-vendor.txt`)
+- [x] `ctest --test-dir build-client -C Release -R Playback --output-on-failure`
+- [ ] Human re-test after PTS pacing fix
+
+**Status:** Done (2026-10-10). Pending human sign-off on motion/audio quality.
+
+**Dependencies:** Task 14  
+**Estimated scope:** L
+
+---
+
+### Task 19: Remote + GitHub Actions (next)
+
+**Description:** Add git remote; push; verify `.github/workflows/server-ci.yml` on Origin/GitHub.
+
+**Acceptance criteria:**
+
+- [ ] Remote configured; `Server CI` workflow green on push/PR
+
+**Status:** Next
+
+**Dependencies:** Task 17  
+**Estimated scope:** S
 
 ---
 

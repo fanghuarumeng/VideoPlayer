@@ -1,0 +1,56 @@
+FFmpeg shared libraries (in-process playback)
+=============================================
+
+Current third_party/ffmpeg/bin only has standalone .exe tools.
+Playback now links libav* (market-standard). You must vendor a **shared** Windows build.
+
+1) Download (pick one)
+   - Recommended: BtbN "win64-gpl-shared" zip
+     https://github.com/BtbN/FFmpeg-Builds/releases
+     Example asset name:
+       ffmpeg-master-latest-win64-gpl-shared.zip
+       (or any dated ffmpeg-N-*-win64-gpl-shared.zip)
+   - Must be **shared** (contains .dll + .lib + include).
+   - Do NOT use "essentials" / exe-only builds for linking.
+
+2) Unpack and place files under the repo as:
+
+   third_party/ffmpeg/
+     include/
+       libavcodec/
+       libavformat/
+       libavutil/
+       libswscale/
+       libswresample/
+       ... (as shipped)
+     lib/
+       avcodec.lib
+       avformat.lib
+       avutil.lib
+       swscale.lib
+       swresample.lib
+       ... (other .lib from the zip are fine)
+     bin/
+       avcodec-*.dll
+       avformat-*.dll
+       avutil-*.dll
+       swscale-*.dll
+       swresample-*.dll
+       avfilter-*.dll      (if present — copy all dlls from the zip bin/)
+       ...                 (copy the whole bin/ from the shared zip)
+       ffmpeg.exe          (optional; not required for playback)
+
+3) Replace the old static-only bin/ contents
+   Your existing huge ffmpeg.exe/ffplay.exe essentials install is not enough.
+   Prefer replacing third_party/ffmpeg/ entirely with the shared layout above.
+
+4) CMake
+   Client configure expects:
+     third_party/ffmpeg/include/libavformat/avformat.h
+     third_party/ffmpeg/lib/avformat.lib
+     third_party/ffmpeg/bin/*.dll
+   Build copies DLLs next to SquareDanceApp.exe automatically.
+
+5) Runtime
+   DLLs must sit beside the .exe (POST_BUILD does this).
+   No need to add ffmpeg to PATH for normal app runs.

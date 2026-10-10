@@ -68,12 +68,8 @@ TEST(Playback, MissingLocalFileEmitsErrorWithoutWritingDownloadDir) {
   controller.setPlayerWidget(&widget);
   QSignalSpy error_spy(&controller,
                        &square_dance::client::PlaybackController::errorOccurred);
-  controller.play(MakeVideo(
-      QString::fromUtf8("file:///F:/git/aicode/data/samples/does-not-exist.mp4")));
+  controller.play(MakeVideo(QString::fromUtf8(
+      "file:///C:/square_dance_missing_media_do_not_create.mp4")));
   ASSERT_GE(error_spy.count(), 1);
   EXPECT_EQ(CountFilesRecursive(download_dir.path()), before);
-}
-
-TEST(Playback, SourceDoesNotReferenceDownloadServiceSymbol) {
-  EXPECT_TRUE(true);
 }

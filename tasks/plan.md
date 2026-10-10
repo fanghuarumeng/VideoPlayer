@@ -76,8 +76,9 @@ Full acceptance/verification detail lives in `tasks/todo.md`.
 - **Checkpoint E** — product v1 manual acceptance (accepted 2026-10-10; playback quality polish deferred)
 
 ### Phase F — Polish / CI (post-v1)
-- Task 17: Server CI without Qt (`scripts/ci-server.*` + GitHub Actions)
-- Deferred: playback A/V sync / embedded UX polish
+- Task 17: Server CI without Qt (`scripts/ci-server.*` + GitHub Actions) — done
+- Task 18: In-process libav playback (`FfmpegPlaybackEngine`) — done; human motion/audio check open
+- Task 19: Remote + verify GitHub Actions — next
 
 ## Parallelization
 

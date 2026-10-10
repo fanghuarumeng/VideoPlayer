@@ -4,24 +4,26 @@
 
 Frontend playback of a selected video’s `play_url`. Must **not** download or write media files.
 
-**Success:** play/pause/stop works for reachable http(s) URLs; download directory unchanged by play-only use.
+**Success:** play/pause/stop works for reachable http(s) / local file URLs; download directory unchanged by play-only use.
 
 ## Tech Stack
 
-- C++11, Qt 5 Multimedia + Widgets
+- C++11, Qt 5 Widgets + Qt Multimedia (`QAudioOutput` only)
+- **In-process FFmpeg shared libraries** (`libavformat` / `libavcodec` / `libavutil` / `libswscale` / `libswresample`) vendored under `third_party/ffmpeg` — see `config/ffmpeg-vendor.txt`
 - Depends on: `client-api` (Video DTO), `client-shell`
 
 ## Commands
 
 ```
-ctest --test-dir build -C Release -R playback --output-on-failure
+ctest --test-dir build-client -C Release -R playback --output-on-failure
 ```
 
 ## Project Structure
 
 ```
 src/client/playback/
-  PlaybackController.*
+  FfmpegPlaybackEngine.*   # demux/decode worker thread
+  PlaybackController.*     # clock, audio out, UI wiring
   VideoPlayerWidget.*
 tests/client/playback/
   playback_no_download_test.cpp
@@ -42,6 +44,7 @@ class PlaybackController : public QObject {
 ```
 
 - Uses `play_url` only; must not call `DownloadService`.
+- Single demux → decode; audio clock drives video present (not dual `ffmpeg.exe` processes).
 
 ## Testing Strategy
 
@@ -50,8 +53,8 @@ class PlaybackController : public QObject {
 ## Boundaries
 
 - **Always:** play ≠ download; errors via signals.
-- **Ask first:** external player (mpv/VLC); server-side streaming proxy.
-- **Never:** auto-download on play; save full stream to disk as silent cache.
+- **Ask first:** embedding libmpv/libVLC instead of libav; server-side streaming proxy.
+- **Never:** auto-download on play; save full stream to disk as silent cache; shell out to `ffmpeg.exe`/`ffplay.exe` as the primary play path; open the system default player as a silent fallback.
 
 ## Success Criteria
 

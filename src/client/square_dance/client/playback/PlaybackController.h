@@ -4,19 +4,18 @@
 
 #include <QByteArray>
 #include <QImage>
-#include <QList>
 #include <QObject>
-#include <QProcess>
+#include <QPointer>
 #include <QString>
 #include <QUrl>
 
 class QAudioOutput;
 class QIODevice;
-class QTimer;
 
 namespace square_dance {
 namespace client {
 
+class FfmpegPlaybackEngine;
 class VideoPlayerWidget;
 
 class PlaybackController : public QObject {
@@ -36,11 +35,10 @@ class PlaybackController : public QObject {
   void statusMessage(const QString& message);
 
  private slots:
-  void onVideoReadyRead();
-  void onAudioReadyRead();
-  void onFrameTick();
-  void onVideoFinished(int exit_code, QProcess::ExitStatus status);
-  void onAudioFinished(int exit_code, QProcess::ExitStatus status);
+  void onVideoFrame(const QImage& frame, double pts_sec);
+  void onAudioSamples(const QByteArray& pcm, double pts_sec);
+  void onEngineFailed(const QString& message);
+  void onEngineEnded();
 
  private:
   PlaybackController(const PlaybackController&);
@@ -48,29 +46,17 @@ class PlaybackController : public QObject {
 
   QUrl ResolvePlayUrl(const QString& url_text) const;
   void UpdateHint(const QString& text);
-  void StopPipelines();
-  bool StartPipelines(const QUrl& media_url, const QString& title, QString* error);
-  QSize ChooseFrameSize() const;
-  bool PlayWithSystemPlayer(const QUrl& media_url,
-                            const QString& title,
-                            QString* error);
-  bool SetProcessSuspended(QProcess* process, bool suspend);
+  void TearDownAudio();
+  bool EnsureAudioOutput(QString* error);
 
-  VideoPlayerWidget* player_widget_;
-  QProcess* video_proc_;
-  QProcess* audio_proc_;
+  QPointer<VideoPlayerWidget> player_widget_;
+  FfmpegPlaybackEngine* engine_;
   QAudioOutput* audio_out_;
   QIODevice* audio_device_;
-  QTimer* frame_timer_;
-  QByteArray video_buffer_;
-  QList<QImage> frame_queue_;
-  QString pending_title_;
-  int frame_w_;
-  int frame_h_;
-  int frame_bytes_;
   bool paused_;
   bool playing_;
   bool has_presented_frame_;
+  QString pending_title_;
 };
 
 }  // namespace client
