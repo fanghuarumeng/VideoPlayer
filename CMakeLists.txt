@@ -191,6 +191,7 @@ if(BUILD_CLIENT)
     src/client/square_dance/client/library/UploadController.cpp
     src/client/square_dance/client/history/PlayHistoryStore.cpp
     src/client/square_dance/client/history/HistoryPane.cpp
+    src/client/square_dance/client/history/HistoryModel.cpp
     src/client/square_dance/client/qml/VideoFrameItem.cpp
     src/client/square_dance/client/qml/PlayerUiBridge.cpp
     src/client/square_dance/client/qml/SecondaryPaneHost.cpp

@@ -12,5 +12,9 @@
     <file alias="qml/UpNext.qml">qml/UpNext.qml</file>
     <file alias="qml/PlayerControls.qml">qml/PlayerControls.qml</file>
     <file alias="qml/TitleBarButton.qml">qml/TitleBarButton.qml</file>
+    <file alias="qml/GlassOverlay.qml">qml/GlassOverlay.qml</file>
+    <file alias="qml/LibraryView.qml">qml/LibraryView.qml</file>
+    <file alias="qml/HistoryView.qml">qml/HistoryView.qml</file>
+    <file alias="qml/SearchView.qml">qml/SearchView.qml</file>
   </qresource>
 </RCC>

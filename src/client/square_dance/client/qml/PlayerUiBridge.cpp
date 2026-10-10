@@ -4,6 +4,7 @@
 #include "square_dance/client/api/CatalogModel.h"
 #include "square_dance/client/api/PushClient.h"
 #include "square_dance/client/download/DownloadService.h"
+#include "square_dance/client/history/HistoryModel.h"
 #include "square_dance/client/history/PlayHistoryStore.h"
 #include "square_dance/client/library/UploadController.h"
 #include "square_dance/client/playback/PlaybackController.h"
@@ -30,6 +31,8 @@ PlayerUiBridge::PlayerUiBridge(const ClientConfig& config, QObject* parent)
       playlist_model_(NULL),
       catalog_(new CatalogClient(config.http_base_url, this)),
       catalog_model_(new CatalogModel(this)),
+      library_model_(new CatalogModel(this)),
+      history_model_(NULL),
       push_(new PushClient(this)),
       downloads_(new DownloadService(config.download_dir, this)),
       upload_(new UploadController(config.http_base_url, 2, this)),
@@ -37,6 +40,7 @@ PlayerUiBridge::PlayerUiBridge(const ClientConfig& config, QObject* parent)
       history_store_(NULL),
       hint_text_(QString::fromUtf8("双击列表条目，或点击播放")),
       status_text_(QString::fromUtf8("正在加载视频库…")),
+      overlay_(QString()),
       position_sec_(0.0),
       duration_sec_(0.0),
       buffer_ratio_(0.0),
@@ -54,6 +58,8 @@ PlayerUiBridge::PlayerUiBridge(const ClientConfig& config, QObject* parent)
   history_store_ = new PlayHistoryStore(ResolveHistoryPath(), 100);
   QString hist_err;
   history_store_->load(&hist_err);
+  history_model_ = new HistoryModel(history_store_, this);
+  history_model_->reload();
 
   panes_ = new SecondaryPaneHost(config_, catalog_, catalog_model_,
                                  playlist_store_, history_store_, upload_, this);
@@ -97,6 +103,8 @@ PlayerUiBridge::PlayerUiBridge(const ClientConfig& config, QObject* parent)
           &PlayerUiBridge::onStatusMessage);
   connect(upload_, &UploadController::uploadFinished, this,
           &PlayerUiBridge::onVideoUpserted);
+  connect(catalog_, &CatalogClient::searchFinished, this,
+          &PlayerUiBridge::onSearchFinished);
   connect(downloads_, &DownloadService::progress, this,
           [this](qint64, qint64 received, qint64 total) {
             if (total > 0) {
@@ -131,10 +139,28 @@ bool PlayerUiBridge::paused() const { return paused_; }
 bool PlayerUiBridge::playing() const { return playing_; }
 bool PlayerUiBridge::hasFrame() const { return !current_frame_.isNull(); }
 bool PlayerUiBridge::liveConnected() const { return live_connected_; }
+QString PlayerUiBridge::overlay() const { return overlay_; }
 QObject* PlayerUiBridge::playlistModelConstant() const {
   return playlist_model_;
 }
+QObject* PlayerUiBridge::libraryModelConstant() const {
+  return library_model_;
+}
+QObject* PlayerUiBridge::searchModelConstant() const {
+  return catalog_model_;
+}
+QObject* PlayerUiBridge::historyModelConstant() const {
+  return history_model_;
+}
 QImage PlayerUiBridge::currentFrame() const { return current_frame_; }
+
+void PlayerUiBridge::SetOverlay(const QString& overlay) {
+  if (overlay_ == overlay) {
+    return;
+  }
+  overlay_ = overlay;
+  emit overlayChanged();
+}
 
 QString PlayerUiBridge::ResolvePlaylistPath() const {
   if (!config_.playlist_path.isEmpty()) {
@@ -334,9 +360,163 @@ void PlayerUiBridge::downloadCurrent() {
   downloads_->startDownload(video, save_path);
 }
 
-void PlayerUiBridge::openLibrary() { panes_->openLibrary(); }
-void PlayerUiBridge::openHistory() { panes_->openHistory(); }
-void PlayerUiBridge::openSearch() { panes_->openSearch(); }
+void PlayerUiBridge::openLibrary() {
+  if (overlay_ == QString::fromUtf8("library")) {
+    closeOverlay();
+    return;
+  }
+  SetOverlay(QString::fromUtf8("library"));
+  refreshLibrary();
+}
+
+void PlayerUiBridge::openHistory() {
+  if (overlay_ == QString::fromUtf8("history")) {
+    closeOverlay();
+    return;
+  }
+  if (history_model_ != NULL) {
+    history_model_->reload();
+  }
+  SetOverlay(QString::fromUtf8("history"));
+}
+
+void PlayerUiBridge::openSearch() {
+  if (overlay_ == QString::fromUtf8("search")) {
+    closeOverlay();
+    return;
+  }
+  SetOverlay(QString::fromUtf8("search"));
+}
+
+void PlayerUiBridge::closeOverlay() { SetOverlay(QString()); }
+
+void PlayerUiBridge::refreshLibrary() {
+  SetStatus(QString::fromUtf8("正在刷新视频库…"));
+  catalog_->listVideos(200, 0);
+}
+
+void PlayerUiBridge::uploadVideos() {
+  QWidget host;
+  host.setWindowFlags(Qt::Tool);
+  host.setAttribute(Qt::WA_DontShowOnScreen, true);
+  host.resize(1, 1);
+  host.show();
+  const QStringList paths = QFileDialog::getOpenFileNames(
+      &host, QString::fromUtf8("选择要上传的视频"), QString(),
+      QString::fromUtf8(
+          "Videos (*.mp4 *.mkv *.webm *.avi *.mov *.mxf);;All (*.*)"));
+  host.hide();
+  if (paths.isEmpty() || upload_ == NULL) {
+    return;
+  }
+  upload_->enqueueFiles(paths);
+}
+
+void PlayerUiBridge::playLibraryAt(int index) {
+  if (library_model_ == NULL) {
+    return;
+  }
+  const Video video = library_model_->videoAt(index);
+  if (video.id == 0 && video.play_url.isEmpty()) {
+    return;
+  }
+  playing_from_playlist_ = false;
+  PlayVideo(video);
+  closeOverlay();
+}
+
+void PlayerUiBridge::addLibraryAt(int index) {
+  if (library_model_ == NULL || playlist_store_ == NULL) {
+    return;
+  }
+  const Video video = library_model_->videoAt(index);
+  if (video.id == 0 && video.play_url.isEmpty()) {
+    SetStatus(QString::fromUtf8("请先选择一个视频"));
+    return;
+  }
+  if (playlist_store_->append(video)) {
+    playlist_model_->reload();
+    emit playlistModelChanged();
+    SetStatus(QString::fromUtf8("已加入播放列表：") + video.title);
+  } else {
+    playlist_store_->mergeFromVideo(video);
+    SetStatus(QString::fromUtf8("已在播放列表中：") + video.title);
+  }
+}
+
+void PlayerUiBridge::searchVideos(const QString& query) {
+  catalog_model_->setFilterQuery(query);
+  SetStatus(QString::fromUtf8("正在搜索…"));
+  catalog_->search(query, 50);
+}
+
+void PlayerUiBridge::playSearchAt(int index) {
+  if (catalog_model_ == NULL) {
+    return;
+  }
+  const Video video = catalog_model_->videoAt(index);
+  if (video.id == 0 && video.play_url.isEmpty()) {
+    return;
+  }
+  playing_from_playlist_ = false;
+  PlayVideo(video);
+  closeOverlay();
+}
+
+void PlayerUiBridge::addSearchAt(int index) {
+  if (catalog_model_ == NULL || playlist_store_ == NULL) {
+    return;
+  }
+  const Video video = catalog_model_->videoAt(index);
+  if (video.id == 0 && video.play_url.isEmpty()) {
+    SetStatus(QString::fromUtf8("请先选择一个视频"));
+    return;
+  }
+  if (playlist_store_->append(video)) {
+    playlist_model_->reload();
+    emit playlistModelChanged();
+    SetStatus(QString::fromUtf8("已加入播放列表：") + video.title);
+  } else {
+    SetStatus(QString::fromUtf8("已在播放列表中：") + video.title);
+  }
+}
+
+void PlayerUiBridge::playHistoryAt(int index) {
+  if (history_model_ == NULL) {
+    return;
+  }
+  const PlayHistoryItem item = history_model_->itemAt(index);
+  if (item.id == 0 && item.play_url.isEmpty()) {
+    return;
+  }
+  Video video;
+  video.id = item.id;
+  video.title = item.title;
+  video.play_url = item.play_url;
+  video.thumbnail_url = item.thumbnail_url;
+  playing_from_playlist_ = false;
+  PlayVideo(video, PlayHistoryStore::ResumePositionMs(item));
+  closeOverlay();
+}
+
+void PlayerUiBridge::clearHistory() {
+  if (history_store_ == NULL) {
+    return;
+  }
+  const int ret = QMessageBox::question(
+      NULL, QString::fromUtf8("清空历史"),
+      QString::fromUtf8("确定清空播放历史吗？"),
+      QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+  if (ret != QMessageBox::Yes) {
+    return;
+  }
+  history_store_->clear();
+  if (history_model_ != NULL) {
+    history_model_->reload();
+  }
+  emit historyModelChanged();
+  SetStatus(QString::fromUtf8("已清空播放历史"));
+}
 
 void PlayerUiBridge::onPlaybackProgress(double position_sec,
                                         double duration_sec) {
@@ -393,6 +573,10 @@ void PlayerUiBridge::onVideoFrame(const QImage& frame) {
 }
 
 void PlayerUiBridge::onListFinished(const QVector<Video>& videos) {
+  if (library_model_ != NULL) {
+    library_model_->resetFromSearch(videos);
+    emit libraryModelChanged();
+  }
   panes_->setLibraryVideos(videos);
   bool playlist_changed = false;
   for (int i = 0; i < videos.size(); ++i) {
@@ -408,11 +592,21 @@ void PlayerUiBridge::onListFinished(const QVector<Video>& videos) {
 }
 
 void PlayerUiBridge::onVideoUpserted(const Video& video) {
+  if (library_model_ != NULL) {
+    library_model_->applyUpserted(video);
+    emit libraryModelChanged();
+  }
   panes_->upsertLibraryVideo(video);
   if (playlist_store_->mergeFromVideo(video)) {
     playlist_model_->reload();
     emit playlistModelChanged();
   }
+}
+
+void PlayerUiBridge::onSearchFinished(const QVector<Video>& videos) {
+  catalog_model_->resetFromSearch(videos);
+  emit searchModelChanged();
+  SetStatus(QString::fromUtf8("找到 %1 个结果").arg(videos.size()));
 }
 
 void PlayerUiBridge::onHistoryPlay(const Video& video, qint64 position_ms) {

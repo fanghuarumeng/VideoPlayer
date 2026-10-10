@@ -291,10 +291,11 @@ void PlaybackController::onSeekCompleted(double position_sec, quint64 job_id) {
   }
   position_sec_ = position_sec;
   EmitProgress();
-  TearDownAudio();
-  if (playing_) {
-    QString error;
-    EnsureAudioOutput(&error);
+  // Flush stale PCM after a seek without destroying QAudioOutput — full
+  // tear-down/recreate hitch was very noticeable on every click-seek.
+  if (audio_out_ != NULL) {
+    audio_out_->stop();
+    audio_device_ = audio_out_->start();
     if (paused_ && audio_out_ != NULL) {
       audio_out_->suspend();
     }

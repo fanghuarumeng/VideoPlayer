@@ -19,7 +19,8 @@ class CatalogModel : public QAbstractListModel {
     PlayUrlRole,
     DownloadUrlRole,
     SourceTypeRole,
-    UpdatedAtRole
+    UpdatedAtRole,
+    ThumbnailUrlRole
   };
 
   explicit CatalogModel(QObject* parent = 0);

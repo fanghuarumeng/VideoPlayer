@@ -5,8 +5,21 @@ import QtQuick.Layouts 1.12
 Item {
     id: root
     property var player
-    property real seekRatio: player && player.durationSec > 0
-                              ? player.positionSec / player.durationSec : 0
+    // Drag only moves the knob; FFmpeg seek runs once on release.
+    property bool scrubbing: false
+    property real scrubRatio: 0
+    property real seekRatio: {
+        if (scrubbing)
+            return scrubRatio
+        if (player && player.durationSec > 0)
+            return player.positionSec / player.durationSec
+        return 0
+    }
+    property real displayPositionSec: {
+        if (scrubbing && player)
+            return scrubRatio * player.durationSec
+        return player ? player.positionSec : 0
+    }
 
     function formatTime(sec) {
         if (sec === undefined || sec < 0 || !isFinite(sec))
@@ -17,12 +30,18 @@ Item {
         return m + ":" + (s < 10 ? "0" + s : s)
     }
 
+    function ratioAt(mouseX, barWidth) {
+        if (barWidth <= 0)
+            return 0
+        return Math.max(0, Math.min(1, mouseX / barWidth))
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 10
 
         Text {
-            text: formatTime(player ? player.positionSec : 0) + " / "
+            text: formatTime(root.displayPositionSec) + " / "
                   + formatTime(player ? player.durationSec : 0)
             color: "#FFFFFF"
             font.pixelSize: 12
@@ -68,21 +87,31 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 onPressed: {
-                    if (player)
-                        player.setScrubbing(true)
+                    if (!player || !(player.durationSec > 0))
+                        return
+                    root.scrubbing = true
+                    root.scrubRatio = root.ratioAt(mouse.x, width)
+                    player.setScrubbing(true)
+                }
+                onPositionChanged: {
+                    // Visual only — continuous seek here caused decoder stalls.
+                    if (pressed && player && player.durationSec > 0)
+                        root.scrubRatio = root.ratioAt(mouse.x, width)
                 }
                 onReleased: {
                     if (!player)
                         return
-                    var r = Math.max(0, Math.min(1, mouse.x / width))
-                    player.seekRatio(r)
+                    if (player.durationSec > 0) {
+                        root.scrubRatio = root.ratioAt(mouse.x, width)
+                        player.seekRatio(root.scrubRatio)
+                    }
+                    root.scrubbing = false
                     player.setScrubbing(false)
                 }
-                onPositionChanged: {
-                    if (pressed && player && player.durationSec > 0) {
-                        var r = Math.max(0, Math.min(1, mouse.x / width))
-                        player.seekRatio(r)
-                    }
+                onCanceled: {
+                    root.scrubbing = false
+                    if (player)
+                        player.setScrubbing(false)
                 }
             }
         }

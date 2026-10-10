@@ -14,6 +14,7 @@ namespace client {
 class CatalogClient;
 class CatalogModel;
 class DownloadService;
+class HistoryModel;
 class PlaybackController;
 class PlayHistoryStore;
 class PlaylistModel;
@@ -34,7 +35,14 @@ class PlayerUiBridge : public QObject {
   Q_PROPERTY(bool hasFrame READ hasFrame NOTIFY frameChanged)
   Q_PROPERTY(QObject* playlistModel READ playlistModelConstant NOTIFY
                  playlistModelChanged)
+  Q_PROPERTY(QObject* libraryModel READ libraryModelConstant NOTIFY
+                 libraryModelChanged)
+  Q_PROPERTY(QObject* searchModel READ searchModelConstant NOTIFY
+                 searchModelChanged)
+  Q_PROPERTY(QObject* historyModel READ historyModelConstant NOTIFY
+                 historyModelChanged)
   Q_PROPERTY(bool liveConnected READ liveConnected NOTIFY liveChanged)
+  Q_PROPERTY(QString overlay READ overlay NOTIFY overlayChanged)
 
  public:
   explicit PlayerUiBridge(const ClientConfig& config, QObject* parent = 0);
@@ -50,7 +58,11 @@ class PlayerUiBridge : public QObject {
   bool playing() const;
   bool hasFrame() const;
   bool liveConnected() const;
+  QString overlay() const;
   QObject* playlistModelConstant() const;
+  QObject* libraryModelConstant() const;
+  QObject* searchModelConstant() const;
+  QObject* historyModelConstant() const;
   QImage currentFrame() const;
 
   Q_INVOKABLE void playSelectedOrResume();
@@ -64,6 +76,16 @@ class PlayerUiBridge : public QObject {
   Q_INVOKABLE void openLibrary();
   Q_INVOKABLE void openHistory();
   Q_INVOKABLE void openSearch();
+  Q_INVOKABLE void closeOverlay();
+  Q_INVOKABLE void refreshLibrary();
+  Q_INVOKABLE void uploadVideos();
+  Q_INVOKABLE void playLibraryAt(int index);
+  Q_INVOKABLE void addLibraryAt(int index);
+  Q_INVOKABLE void searchVideos(const QString& query);
+  Q_INVOKABLE void playSearchAt(int index);
+  Q_INVOKABLE void addSearchAt(int index);
+  Q_INVOKABLE void playHistoryAt(int index);
+  Q_INVOKABLE void clearHistory();
 
  signals:
   void titleChanged();
@@ -75,7 +97,11 @@ class PlayerUiBridge : public QObject {
   void playingChanged();
   void frameChanged();
   void playlistModelChanged();
+  void libraryModelChanged();
+  void searchModelChanged();
+  void historyModelChanged();
   void liveChanged();
+  void overlayChanged();
 
  private slots:
   void onPlaybackProgress(double position_sec, double duration_sec);
@@ -90,6 +116,7 @@ class PlayerUiBridge : public QObject {
   void onHistoryPlay(const Video& video, qint64 position_ms);
   void onLibraryPlay(const Video& video);
   void onConnectionChanged(bool connected);
+  void onSearchFinished(const QVector<Video>& videos);
 
  private:
   void PlayVideo(const Video& video, qint64 seek_ms = -1);
@@ -97,6 +124,7 @@ class PlayerUiBridge : public QObject {
   void SetHint(const QString& hint);
   void SetStatus(const QString& status);
   void SetPlaying(bool playing);
+  void SetOverlay(const QString& overlay);
   QString ResolvePlaylistPath() const;
   QString ResolveHistoryPath() const;
   Video VideoFromPlaylistItem(const PlaylistItem& item) const;
@@ -107,6 +135,8 @@ class PlayerUiBridge : public QObject {
   PlaylistModel* playlist_model_;
   CatalogClient* catalog_;
   CatalogModel* catalog_model_;
+  CatalogModel* library_model_;
+  HistoryModel* history_model_;
   PushClient* push_;
   DownloadService* downloads_;
   UploadController* upload_;
@@ -116,6 +146,7 @@ class PlayerUiBridge : public QObject {
   QString title_;
   QString hint_text_;
   QString status_text_;
+  QString overlay_;
   double position_sec_;
   double duration_sec_;
   double buffer_ratio_;

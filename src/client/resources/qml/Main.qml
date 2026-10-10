@@ -99,12 +99,15 @@ ApplicationWindow {
                     onClicked: player.openLibrary()
                     contentItem: Text {
                         text: parent.text
-                        color: "#B0B3B8"
+                        color: player && player.overlay === "library" ? "#FFFFFF" : "#B0B3B8"
                         font.pixelSize: 13
                         horizontalAlignment: Text.AlignHCenter
                     }
                     background: Rectangle {
-                        color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
+                        color: player && player.overlay === "library"
+                               ? Qt.rgba(1,1,1,0.14)
+                               : (parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent")
+                        radius: 6
                         implicitHeight: 28
                         implicitWidth: 72
                     }
@@ -114,12 +117,15 @@ ApplicationWindow {
                     onClicked: player.openHistory()
                     contentItem: Text {
                         text: parent.text
-                        color: "#B0B3B8"
+                        color: player && player.overlay === "history" ? "#FFFFFF" : "#B0B3B8"
                         font.pixelSize: 13
                         horizontalAlignment: Text.AlignHCenter
                     }
                     background: Rectangle {
-                        color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
+                        color: player && player.overlay === "history"
+                               ? Qt.rgba(1,1,1,0.14)
+                               : (parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent")
+                        radius: 6
                         implicitHeight: 28
                         implicitWidth: 56
                     }
@@ -129,12 +135,15 @@ ApplicationWindow {
                     onClicked: player.openSearch()
                     contentItem: Text {
                         text: parent.text
-                        color: "#B0B3B8"
+                        color: player && player.overlay === "search" ? "#FFFFFF" : "#B0B3B8"
                         font.pixelSize: 13
                         horizontalAlignment: Text.AlignHCenter
                     }
                     background: Rectangle {
-                        color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
+                        color: player && player.overlay === "search"
+                               ? Qt.rgba(1,1,1,0.14)
+                               : (parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent")
+                        radius: 6
                         implicitHeight: 28
                         implicitWidth: 56
                     }
@@ -265,6 +274,41 @@ ApplicationWindow {
             font.pixelSize: 12
             Layout.fillWidth: true
             elide: Text.ElideRight
+        }
+    }
+
+    // Glass overlays reuse the same blurred video backdrop as the player.
+    GlassOverlay {
+        anchors.fill: parent
+        z: 20
+        visible: player && player.overlay === "library"
+        titleText: "\u89c6\u9891\u5e93"
+        onCloseRequested: if (player) player.closeOverlay()
+        LibraryView {
+            anchors.fill: parent
+            player: win.player
+        }
+    }
+    GlassOverlay {
+        anchors.fill: parent
+        z: 20
+        visible: player && player.overlay === "history"
+        titleText: "\u5386\u53f2"
+        onCloseRequested: if (player) player.closeOverlay()
+        HistoryView {
+            anchors.fill: parent
+            player: win.player
+        }
+    }
+    GlassOverlay {
+        anchors.fill: parent
+        z: 20
+        visible: player && player.overlay === "search"
+        titleText: "\u641c\u7d22"
+        onCloseRequested: if (player) player.closeOverlay()
+        SearchView {
+            anchors.fill: parent
+            player: win.player
         }
     }
 }

@@ -33,6 +33,8 @@ QVariant CatalogModel::data(const QModelIndex& index, int role) const {
       return v.source_type;
     case UpdatedAtRole:
       return v.updated_at;
+    case ThumbnailUrlRole:
+      return v.thumbnail_url;
     default:
       return QVariant();
   }
@@ -47,6 +49,7 @@ QHash<int, QByteArray> CatalogModel::roleNames() const {
   names.insert(DownloadUrlRole, "download_url");
   names.insert(SourceTypeRole, "source_type");
   names.insert(UpdatedAtRole, "updated_at");
+  names.insert(ThumbnailUrlRole, "thumbnail_url");
   return names;
 }
 
