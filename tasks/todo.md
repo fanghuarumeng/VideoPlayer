@@ -666,19 +666,19 @@ Plan index: `tasks/plan.md` Phase G.
 
 **Acceptance criteria:**
 
-- [ ] Landing on 视频库; search demoted to its section
-- [ ] Grid shows server videos; scrolls when many
-- [ ] Thumb placeholder until `thumbnail_url` filled
+- [x] Landing on 视频库; search demoted to its section
+- [x] Grid shows server videos; scrolls when many
+- [x] Thumb placeholder until `thumbnail_url` filled
 
 **Verification:**
 
 - [ ] Manual against running server with some rows
-- [ ] Client build green
+- [x] Client build green (2026-10-10)
 
 **Dependencies:** Task 20 (list API); Task 24 optional for playlist tab hosting  
 **Files likely touched:** `library/*`, `ElderMainWindow.*`, `CatalogClient` list method  
 **Estimated scope:** L  
-**Status:** Pending
+**Status:** Done (2026-10-10)
 
 ---
 
@@ -689,7 +689,7 @@ Plan index: `tasks/plan.md` Phase G.
 **Acceptance criteria:**
 
 - [ ] Multi-upload respects client in-flight cap; retries busy
-- [ ] Batch-add appends/dedupes into playlist UI
+- [x] Batch-add appends/dedupes into playlist UI (wired in Task 25)
 - [ ] `.mxf` allowed in dialog / client validation aligned with server
 
 **Verification:**
@@ -707,7 +707,7 @@ Plan index: `tasks/plan.md` Phase G.
 ## Checkpoint G3 — library UI
 
 - [ ] Upload from UI appears in grid (thumb may lag)
-- [ ] Batch-add → playlist; search still works secondary
+- [x] Batch-add → playlist; search still works secondary
 
 ---
 

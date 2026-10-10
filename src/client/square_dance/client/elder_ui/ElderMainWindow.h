@@ -10,6 +10,7 @@
 
 class QLabel;
 class QTabWidget;
+class QWidget;
 
 namespace square_dance {
 namespace client {
@@ -18,6 +19,7 @@ class CatalogClient;
 class CatalogModel;
 class ConnectionStatusWidget;
 class DownloadService;
+class LibraryPane;
 class PlaybackController;
 class PlayerPane;
 class PlaylistPane;
@@ -36,6 +38,8 @@ class ElderMainWindow : public QMainWindow {
   void onSearchRequested(const QString& query);
   void onSearchFinished(const QVector<square_dance::client::Video>& videos);
   void onSearchFailed(const QString& error);
+  void onListFinished(const QVector<square_dance::client::Video>& videos);
+  void onListFailed(const QString& error);
   void onPlayClicked();
   void onPauseClicked();
   void onStopClicked();
@@ -48,6 +52,11 @@ class ElderMainWindow : public QMainWindow {
   void onPlaylistPlayRequested(const PlaylistItem& item);
   void onPlaybackFinished();
   void onAddSearchToPlaylist();
+  void onLibraryRefresh();
+  void onLibraryAddToPlaylist(const QVector<Video>& videos);
+  void onLibraryPlayRequested(const Video& video);
+  void onVideoUpserted(const Video& video);
+  void onVideoRemoved(qint64 id);
   void SetStatusMessage(const QString& message);
 
  private:
@@ -65,6 +74,8 @@ class ElderMainWindow : public QMainWindow {
   QTabWidget* side_tabs_;
   PlaylistStore* playlist_store_;
   PlaylistPane* playlist_pane_;
+  LibraryPane* library_pane_;
+  QWidget* history_placeholder_;
 
   CatalogModel* model_;
   CatalogClient* catalog_;

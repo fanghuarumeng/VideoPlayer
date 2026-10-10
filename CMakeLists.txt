@@ -183,6 +183,7 @@ if(BUILD_CLIENT)
     src/client/square_dance/client/playlist/PlaylistStore.cpp
     src/client/square_dance/client/playlist/PlaylistModel.cpp
     src/client/square_dance/client/playlist/PlaylistPane.cpp
+    src/client/square_dance/client/library/LibraryPane.cpp
     ${SQUARE_DANCE_CLIENT_RESOURCES}
   )
   target_include_directories(square_dance_client_lib PUBLIC

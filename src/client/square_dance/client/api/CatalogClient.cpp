@@ -49,6 +49,28 @@ void CatalogClient::search(const QString& name, int limit) {
           &CatalogClient::onSearchFinished);
 }
 
+void CatalogClient::listVideos(int limit, int offset) {
+  if (limit <= 0) {
+    limit = 50;
+  }
+  if (limit > 200) {
+    limit = 200;
+  }
+  if (offset < 0) {
+    offset = 0;
+  }
+  QUrl url(http_base_url_ + QString::fromUtf8("/api/v1/videos"));
+  QUrlQuery query;
+  query.addQueryItem(QString::fromUtf8("limit"), QString::number(limit));
+  query.addQueryItem(QString::fromUtf8("offset"), QString::number(offset));
+  url.setQuery(query);
+
+  QNetworkRequest request(url);
+  QNetworkReply* reply = nam_->get(request);
+  connect(reply, &QNetworkReply::finished, this,
+          &CatalogClient::onListFinished);
+}
+
 void CatalogClient::getById(qint64 id) {
   const QUrl url(http_base_url_ + QString::fromUtf8("/api/v1/videos/") +
                  QString::number(id));
@@ -87,6 +109,37 @@ void CatalogClient::onSearchFinished() {
     return;
   }
   emit searchFinished(videos);
+}
+
+void CatalogClient::onListFinished() {
+  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+  if (reply == NULL) {
+    emit listFailed(QString::fromUtf8("internal: missing reply"));
+    return;
+  }
+  reply->deleteLater();
+
+  if (reply->error() != QNetworkReply::NoError) {
+    emit listFailed(reply->errorString());
+    return;
+  }
+
+  const int status =
+      reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+  const QByteArray body = reply->readAll();
+  if (status < 200 || status >= 300) {
+    emit listFailed(QString::fromUtf8("HTTP ") + QString::number(status) +
+                    QString::fromUtf8(": ") + QString::fromUtf8(body));
+    return;
+  }
+
+  QVector<Video> videos;
+  QString error;
+  if (!ParseVideoListJson(body, &videos, &error)) {
+    emit listFailed(error);
+    return;
+  }
+  emit listFinished(videos);
 }
 
 void CatalogClient::onDetailFinished() {
