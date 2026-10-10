@@ -8,9 +8,10 @@ namespace square_dance {
 namespace client {
 
 ClientApp::ClientApp(int& argc, char** argv, const ClientConfig& config)
-    : config_(config),
-      app_(new QApplication(argc, argv)),
-      window_(new ElderMainWindow(config_)) {}
+    : config_(config) {
+  app_.reset(new QApplication(argc, argv));
+  window_.reset(new ElderMainWindow(config_));
+}
 
 ClientApp::~ClientApp() {}
 

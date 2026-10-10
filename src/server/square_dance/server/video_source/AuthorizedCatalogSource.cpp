@@ -25,10 +25,11 @@ std::string ToLowerAscii(std::string value) {
   return value;
 }
 
-bool StartsWithHttp(const std::string& url) {
+bool IsAllowedMediaUrl(const std::string& url) {
   const std::string lower = ToLowerAscii(url);
   return lower.compare(0, 7, "http://") == 0 ||
-         lower.compare(0, 8, "https://") == 0;
+         lower.compare(0, 8, "https://") == 0 ||
+         lower.compare(0, 7, "file://") == 0;
 }
 
 bool ContainsIgnoreCase(const std::string& haystack, const std::string& needle) {
@@ -101,7 +102,7 @@ bool AuthorizedCatalogSource::ParseCatalogJson(const std::string& json_text,
     if (play_url.empty() || download_url.empty()) {
       continue;
     }
-    if (!StartsWithHttp(play_url) || !StartsWithHttp(download_url)) {
+    if (!IsAllowedMediaUrl(play_url) || !IsAllowedMediaUrl(download_url)) {
       continue;
     }
 

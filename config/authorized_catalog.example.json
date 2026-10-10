@@ -2,15 +2,21 @@
   "videos": [
     {
       "id": "auth-001",
-      "title": "Morning Square Dance Demo",
-      "play_url": "https://example.com/videos/morning.mp4",
-      "download_url": "https://example.com/videos/morning.mp4"
+      "title": "广场舞基础步伐演示",
+      "play_url": "https://filesamples.com/samples/video/mp4/sample_640x360.mp4",
+      "download_url": "https://download.samplelib.com/mp4/sample-5s.mp4"
     },
     {
       "id": "auth-002",
-      "title": "Evening Practice",
-      "play_url": "https://example.com/videos/evening.mp4",
-      "download_url": "https://example.com/videos/evening.mp4"
+      "title": "square dance evening practice",
+      "play_url": "https://filesamples.com/samples/video/mp4/sample_640x360.mp4",
+      "download_url": "https://filesamples.com/samples/video/mp4/sample_640x360.mp4"
+    },
+    {
+      "id": "auth-003",
+      "title": "欢乐广场舞小样",
+      "play_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+      "download_url": "https://www.w3schools.com/html/mov_bbb.mp4"
     }
   ]
 }

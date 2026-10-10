@@ -41,10 +41,10 @@ class ElderMainWindow : public QMainWindow {
   void onDownloadFinished(qint64 video_id, const QString& local_path);
   void onDownloadError(qint64 video_id, const QString& message);
   void onConnectionChanged(bool connected);
+  void SetStatusMessage(const QString& message);
 
  private:
   bool SelectedVideo(Video* out) const;
-  void SetStatusMessage(const QString& message);
 
   ClientConfig config_;
   SearchBar* search_bar_;

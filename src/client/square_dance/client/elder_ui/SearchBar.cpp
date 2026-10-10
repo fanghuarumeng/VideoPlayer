@@ -1,6 +1,7 @@
 #include "square_dance/client/elder_ui/SearchBar.h"
 
-#include <QFont>
+#include "square_dance/client/elder_ui/ElderStyle.h"
+
 #include <QHBoxLayout>
 #include <QLineEdit>
 #include <QPushButton>
@@ -9,23 +10,20 @@ namespace square_dance {
 namespace client {
 
 SearchBar::SearchBar(QWidget* parent) : QWidget(parent) {
-  QFont body;
-  body.setPointSize(16);
-  QFont title;
-  title.setPointSize(18);
-
   edit_ = new QLineEdit(this);
-  edit_->setFont(body);
-  edit_->setPlaceholderText(QString::fromUtf8("输入舞曲名称"));
-  edit_->setMinimumHeight(44);
+  edit_->setFont(ElderStyle::BodyFont());
+  edit_->setPlaceholderText(QString::fromUtf8("输入舞曲名称，例如：广场舞"));
+  edit_->setStyleSheet(ElderStyle::SearchEditStyle());
 
   button_ = new QPushButton(QString::fromUtf8("搜索"), this);
-  button_->setFont(title);
-  button_->setMinimumHeight(44);
-  button_->setMinimumWidth(120);
+  button_->setFont(ElderStyle::ButtonFont());
+  button_->setStyleSheet(ElderStyle::PrimaryButtonStyle());
+  button_->setMinimumWidth(128);
+  button_->setCursor(Qt::PointingHandCursor);
 
   QHBoxLayout* layout = new QHBoxLayout(this);
   layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(12);
   layout->addWidget(edit_, 1);
   layout->addWidget(button_);
 

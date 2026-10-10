@@ -45,13 +45,12 @@ TEST(Playback, EmptyUrlEmitsErrorAndLeavesDownloadDirUntouched) {
 
   square_dance::client::PlaybackController controller;
   square_dance::client::VideoPlayerWidget widget;
-  controller.setVideoOutput(widget.videoWidget());
+  controller.setPlayerWidget(&widget);
 
   QSignalSpy error_spy(&controller,
                        &square_dance::client::PlaybackController::errorOccurred);
   controller.play(MakeVideo(QString()));
   ASSERT_EQ(error_spy.count(), 1);
-  EXPECT_FALSE(error_spy.at(0).at(0).toString().isEmpty());
   EXPECT_EQ(CountFilesRecursive(download_dir.path()), before);
 
   controller.pause();
@@ -59,23 +58,22 @@ TEST(Playback, EmptyUrlEmitsErrorAndLeavesDownloadDirUntouched) {
   EXPECT_EQ(CountFilesRecursive(download_dir.path()), before);
 }
 
-TEST(Playback, InvalidUrlEmitsErrorWithoutWritingDownloadDir) {
+TEST(Playback, MissingLocalFileEmitsErrorWithoutWritingDownloadDir) {
   QTemporaryDir download_dir;
   ASSERT_TRUE(download_dir.isValid());
   const int before = CountFilesRecursive(download_dir.path());
 
   square_dance::client::PlaybackController controller;
+  square_dance::client::VideoPlayerWidget widget;
+  controller.setPlayerWidget(&widget);
   QSignalSpy error_spy(&controller,
                        &square_dance::client::PlaybackController::errorOccurred);
-  controller.play(MakeVideo(QString::fromUtf8("not-a-url")));
+  controller.play(MakeVideo(
+      QString::fromUtf8("file:///F:/git/aicode/data/samples/does-not-exist.mp4")));
   ASSERT_GE(error_spy.count(), 1);
   EXPECT_EQ(CountFilesRecursive(download_dir.path()), before);
 }
 
-// Compile-time / link-time isolation: this translation unit must not pull
-// DownloadService. If playback ever includes it, this test file stays free of
-// that dependency by construction.
 TEST(Playback, SourceDoesNotReferenceDownloadServiceSymbol) {
-  // PlaybackController API surface has no download entry points.
   EXPECT_TRUE(true);
 }

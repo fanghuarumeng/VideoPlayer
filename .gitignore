@@ -1,5 +1,7 @@
 /build*/
 /out/
+/data/
+/downloads/
 /.vs/
 /CMakeUserPresets.json
 *.user
@@ -13,4 +15,9 @@ third_party/sqlite-amalgamation.zip
 third_party/websocketpp.zip
 third_party/asio.zip
 third_party/asio-asio-1-28-0/
+third_party/ffmpeg-essentials.zip
+third_party/ffmpeg-btbn.zip
+third_party/ffmpeg_extract/
+# Keep third_party/ffmpeg/bin locally; large binaries stay untracked.
+third_party/ffmpeg/
 

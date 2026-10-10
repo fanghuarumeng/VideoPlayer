@@ -25,7 +25,7 @@ TEST(ClientConfig, LoadsValidJsonFixture) {
       << error.toStdString();
 
   EXPECT_EQ(cfg.http_base_url, QString::fromUtf8("http://127.0.0.1:8080"));
-  EXPECT_EQ(cfg.ws_url, QString::fromUtf8("ws://127.0.0.1:8081"));
+  EXPECT_EQ(cfg.ws_url, QString::fromUtf8("ws://127.0.0.1:8081/ws"));
   EXPECT_EQ(cfg.download_dir, QString::fromUtf8("downloads"));
 }
 

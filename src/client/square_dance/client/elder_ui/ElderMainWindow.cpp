@@ -6,15 +6,17 @@
 #include "square_dance/client/api/Video.h"
 #include "square_dance/client/download/DownloadService.h"
 #include "square_dance/client/elder_ui/ConnectionStatusWidget.h"
+#include "square_dance/client/elder_ui/ElderStyle.h"
 #include "square_dance/client/elder_ui/PlayerPane.h"
 #include "square_dance/client/elder_ui/SearchBar.h"
 #include "square_dance/client/elder_ui/VideoResultList.h"
 #include "square_dance/client/playback/PlaybackController.h"
 #include "square_dance/client/playback/VideoPlayerWidget.h"
 
-#include <QFont>
+#include <QColor>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPalette>
 #include <QSplitter>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -37,44 +39,69 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
       playback_(new PlaybackController(this)),
       downloads_(new DownloadService(config.download_dir, this)) {
   setWindowTitle(QString::fromUtf8("广场舞"));
-  resize(1100, 720);
+  resize(1180, 760);
 
-  QFont body;
-  body.setPointSize(16);
-  QFont title;
-  title.setPointSize(18);
+  // Color the window via palette (not a parent stylesheet over the video tree).
+  QPalette pal = palette();
+  pal.setColor(QPalette::Window, QColor(ElderStyle::WindowBackground()));
+  pal.setColor(QPalette::Base, QColor(ElderStyle::PanelBackground()));
+  pal.setColor(QPalette::Text, QColor(ElderStyle::Ink()));
+  pal.setColor(QPalette::WindowText, QColor(ElderStyle::Ink()));
+  setPalette(pal);
+  setAutoFillBackground(true);
 
   QLabel* brand = new QLabel(QString::fromUtf8("广场舞"), this);
-  brand->setFont(title);
+  brand->setFont(ElderStyle::TitleFont());
+  brand->setStyleSheet(ElderStyle::BrandStyle());
+
+  QLabel* subtitle =
+      new QLabel(QString::fromUtf8("搜舞曲 · 点播放 · 要下载再点下载"), this);
+  subtitle->setFont(ElderStyle::BodyFont());
+  subtitle->setStyleSheet(
+      QString::fromUtf8("QLabel { color: %1; background: transparent; }")
+          .arg(ElderStyle::Muted()));
 
   connection_status_ = new ConnectionStatusWidget(this);
   search_bar_ = new SearchBar(this);
   result_list_ = new VideoResultList(this);
   result_list_->setCatalogModel(model_);
-  // Large touch-friendly rows for arm's-length reading.
-  result_list_->setStyleSheet(
-      QString::fromUtf8("QListView::item { min-height: 40px; padding: 8px; }"));
+  result_list_->setMinimumWidth(300);
 
   player_pane_ = new PlayerPane(this);
-  playback_->setVideoOutput(player_pane_->playerWidget()->videoWidget());
+  playback_->setPlayerWidget(player_pane_->playerWidget());
 
   status_label_ = new QLabel(QString::fromUtf8("请输入名称后点击搜索"), this);
-  status_label_->setFont(body);
+  status_label_->setFont(ElderStyle::BodyFont());
   status_label_->setWordWrap(true);
+  status_label_->setStyleSheet(ElderStyle::StatusStyle());
+
+  QVBoxLayout* brand_col = new QVBoxLayout();
+  brand_col->setSpacing(2);
+  brand_col->addWidget(brand);
+  brand_col->addWidget(subtitle);
 
   QHBoxLayout* top = new QHBoxLayout();
-  top->addWidget(brand);
+  top->addLayout(brand_col);
   top->addStretch(1);
-  top->addWidget(connection_status_);
+  top->addWidget(connection_status_, 0, Qt::AlignTop);
 
   QSplitter* split = new QSplitter(Qt::Horizontal, this);
   split->addWidget(result_list_);
   split->addWidget(player_pane_);
   split->setStretchFactor(0, 2);
-  split->setStretchFactor(1, 3);
+  split->setStretchFactor(1, 5);
+  split->setChildrenCollapsible(false);
+  split->setHandleWidth(8);
+  // Give the player a clear majority of width so the surface is obvious.
+  QList<int> sizes;
+  sizes << 340 << 780;
+  split->setSizes(sizes);
 
   QWidget* central = new QWidget(this);
+  central->setAutoFillBackground(true);
   QVBoxLayout* root = new QVBoxLayout(central);
+  root->setContentsMargins(18, 16, 18, 16);
+  root->setSpacing(14);
   root->addLayout(top);
   root->addWidget(search_bar_);
   root->addWidget(split, 1);
@@ -103,6 +130,8 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
           &ElderMainWindow::onDownloadClicked);
   connect(playback_, &PlaybackController::errorOccurred, this,
           &ElderMainWindow::onPlaybackError);
+  connect(playback_, &PlaybackController::statusMessage, this,
+          &ElderMainWindow::SetStatusMessage);
   connect(downloads_, &DownloadService::progress, this,
           &ElderMainWindow::onDownloadProgress);
   connect(downloads_, &DownloadService::finished, this,
@@ -140,8 +169,10 @@ void ElderMainWindow::onSearchFinished(
     const QVector<square_dance::client::Video>& videos) {
   model_->resetFromSearch(videos);
   model_->setFilterQuery(current_query_);
-  SetStatusMessage(QString::fromUtf8("找到 %1 个结果")
-                       .arg(videos.size()));
+  SetStatusMessage(QString::fromUtf8("找到 %1 个结果").arg(videos.size()));
+  if (!videos.isEmpty()) {
+    result_list_->setCurrentIndex(model_->index(0, 0));
+  }
 }
 
 void ElderMainWindow::onSearchFailed(const QString& error) {

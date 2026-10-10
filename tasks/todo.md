@@ -9,65 +9,77 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Description:** Create root CMake project with `BUILD_SERVER`/`BUILD_CLIENT` options, FetchContent pins for server deps (nlohmann/json, googletest; httplib/websocketpp/sqlite3 as needed by later tasks), and Qt-free `src/common` VideoDto + JSON field helpers shared by both processes.
 
 **Acceptance criteria:**
+
 - [x] CMake configures with `-DBUILD_SERVER=ON -DBUILD_CLIENT=OFF` without Qt
 - [x] `VideoDto` + to/from JSON helpers compile in a tiny common test or are header-only and included by a server test target stub
 - [x] JSON field names match `SPEC-server-api.md`
 
 **Verification:**
+
 - [x] `cmake -S . -B build-server -DBUILD_SERVER=ON -DBUILD_CLIENT=OFF` succeeds without `CMAKE_PREFIX_PATH` for Qt
 - [x] Manual check: `src/common` has no `#include <Q...>`
 
 **Status:** Done (2026-10-09). Deps vendored under `third_party/` (FetchContent to GitHub blocked by proxy).
 
 **Dependencies:** None  
-**Files likely touched:** `CMakeLists.txt`, `cmake/*`, `src/common/VideoDto.h`, `src/common/video_json.h`  
+**Files likely touched:** `CMakeLists.txt`, `cmake/`*, `src/common/VideoDto.h`, `src/common/video_json.h`  
 **Estimated scope:** M
 
 ---
+
+
 
 ## Task 2: server-shell
 
 **Description:** Add `SquareDanceServer` executable: `main`, `ServerConfig` JSON load, logging, GoogleTest target for config parse. No business modules yet.
 
 **Acceptance criteria:**
+
 - [x] `SquareDanceServer` builds and runs `--config` / example config
 - [x] Config fields match `SPEC-server-shell.md` (ports, paths, intervals, keywords, threshold)
 - [x] Server targets do not link Qt
 - [x] Config GTest passes
 
 **Verification:**
+
 - [x] `cmake --build build-server --config Release --target SquareDanceServer`
 - [x] `ctest --test-dir build-server -C Release -R ServerConfig --output-on-failure`
 - [x] Manual: process starts and exits cleanly
 
 **Dependencies:** Task 1  
-**Files likely touched:** `src/server/main.cpp`, `ServerConfig.*`, `config/server.json.example`, `tests/server/server_config_test.cpp`  
+**Files likely touched:** `src/server/main.cpp`, `ServerConfig.`*, `config/server.json.example`, `tests/server/server_config_test.cpp`  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). Shell loads config and exits; listen/API wired in later tasks.
 
 ---
 
+
+
 ## Task 3: video-store (SQLite)
 
 **Description:** Implement `IVideoRepository` + `SqliteVideoRepository` with schema version, upsert uniqueness, searchByName, hard delete.
 
 **Acceptance criteria:**
+
 - [x] Upsert insert + update by `(source_type, external_id)`
 - [x] `searchByName` substring; empty query → empty list
 - [x] `removeById` physically deletes
 - [x] GTest suite green on temp DB
 
 **Verification:**
+
 - [x] `ctest --test-dir build-server -C Release -R SqliteVideoRepository --output-on-failure`
 
 **Dependencies:** Task 2  
-**Files likely touched:** `src/server/video_store/*`, `tests/server/video_store/sqlite_repository_test.cpp`  
+**Files likely touched:** `src/server/video_store/`*, `tests/server/video_store/sqlite_repository_test.cpp`  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). SQLite amalgamation vendored under `third_party/sqlite`.
 
 ---
+
+
 
 ## Checkpoint A — Backend foundation
 
@@ -77,151 +89,181 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 ---
 
+
+
 ## Task 4: AuthorizedCatalogSource
 
 **Description:** Implement authorized JSON catalog adapter; reject malformed entries; filter by keyword.
 
 **Acceptance criteria:**
+
 - [x] Loads catalog from path; returns `VideoCandidate`s with real http(s) URLs
 - [x] Keyword filter on title; missing URL entries skipped/rejected
 - [x] Fixture GTest without network
 
 **Verification:**
+
 - [x] `ctest --test-dir build-server -C Release -R AuthorizedCatalog --output-on-failure`
 
 **Dependencies:** Task 2 (Task 3 not strictly required but keep order)  
-**Files likely touched:** `src/server/video_source/IVideoSource.h`, `AuthorizedCatalogSource.*`, `tests/server/video_source/authorized_catalog_test.cpp`, sample `config/authorized_catalog.example.json`  
+**Files likely touched:** `src/server/video_source/IVideoSource.h`, `AuthorizedCatalogSource.`*, `tests/server/video_source/authorized_catalog_test.cpp`, sample `config/authorized_catalog.example.json`  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09).
 
 ---
 
+
+
 ## Task 5: IngestService
 
 **Description:** `runOnce` over configured sources → upsert into repository; 12h timer; upserted handler callback; no media download.
 
 **Acceptance criteria:**
+
 - [x] Double `runOnce` does not duplicate rows
 - [x] Handler fires with inserted/updated videos (skip identical no-op when detectable)
 - [x] Timer start/stop safe
 - [x] GTest with fake source + temp repo
 
 **Verification:**
+
 - [x] `ctest --test-dir build-server -C Release -R IngestService --output-on-failure`
 
 **Dependencies:** Task 3, Task 4  
-**Files likely touched:** `src/server/ingest/*`, `tests/server/ingest/ingest_service_test.cpp`  
+**Files likely touched:** `src/server/ingest/`*, `tests/server/ingest/ingest_service_test.cpp`  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). Added `findBySourceKey` for no-op detection.
 
 ---
 
+
+
 ## Task 6: HTTP API (search / get / ingest run)
 
 **Description:** cpp-httplib server exposing search, get-by-id, POST ingest/run; JSON via common helpers.
 
 **Acceptance criteria:**
+
 - [x] `GET /api/v1/videos/search` returns matching videos
 - [x] `GET /api/v1/videos/{id}` 200/404
 - [x] `POST /api/v1/ingest/run` triggers `runOnce`
 - [x] Ephemeral-port GTest or equivalent
 
 **Verification:**
+
 - [x] `ctest --test-dir build-server -C Release -R HttpSearch --output-on-failure` (and ServerVideoJson)
 - [ ] Manual: `curl` against running server after Checkpoint B wiring
 
 **Dependencies:** Task 3, Task 5  
-**Files likely touched:** `src/server/api/HttpApiServer.*`, `video_json.*`, `tests/server/api/http_search_test.cpp`  
+**Files likely touched:** `src/server/api/HttpApiServer.`*, `video_json.`*, `tests/server/api/http_search_test.cpp`  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). httplib vendored; ingest POST returns 503 when ingest not wired.
 
 ---
 
+
+
 ## Task 7: websocketpp push server
 
 **Description:** WS server on `/ws` port 8081; broadcast `video.upserted` / `video.removed`; connect ingest handler to upsert push.
 
 **Acceptance criteria:**
+
 - [x] Client can connect to `ws://127.0.0.1:8081/ws`
 - [x] Ingest-driven upsert produces `video.upserted` JSON
 - [x] Unknown client messages ignored; ping optional
 - [x] Builds with websocketpp + Asio (standalone preferred)
 
 **Verification:**
+
 - [x] Automated test if feasible; else manual WS client script documented in task notes
 - [x] Build Release `SquareDanceServer` succeeds
 
 **Dependencies:** Task 5, Task 6  
-**Files likely touched:** `src/server/api/WsPushServer.*`, CMake FetchContent for websocketpp/asio, tests or `tools/ws_smoke.*`  
+**Files likely touched:** `src/server/api/WsPushServer.`*, CMake FetchContent for websocketpp/asio, tests or `tools/ws_smoke.`*  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). `BroadcastUpserted`/`BroadcastRemoved` ready; ServerApp wires ingest→WS in Task 10.
 
 ---
 
+
+
 ## Task 8: ArchiveOrgSource
 
 **Description:** Archive.org search + metadata → direct download URL; fixture-based parse tests; wire into ingest source list.
 
 **Acceptance criteria:**
+
 - [x] Fixture tests resolve a sample identifier to download URL
 - [x] Prefer mp4 when present; skip items without usable file
 - [x] Live network not required for CI green
 
 **Verification:**
+
 - [x] `ctest --test-dir build-server -C Release -R ArchiveOrg --output-on-failure`
 
 **Dependencies:** Task 4, Task 5  
-**Files likely touched:** `src/server/video_source/ArchiveOrgSource.*`, `tests/server/video_source/archive_org_parse_test.cpp`, fixtures under `tests/server/video_source/fixtures/`  
+**Files likely touched:** `src/server/video_source/ArchiveOrgSource.`*, `tests/server/video_source/archive_org_parse_test.cpp`, fixtures under `tests/server/video_source/fixtures/`  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). Live HTTPS needs OpenSSL-enabled httplib; tests inject HttpGetFn.
 
 ---
 
+
+
 ## Task 9: UrlHealthService
 
 **Description:** Probe play/download URLs; after 3 failures hard-delete; removed handler for WS.
 
 **Acceptance criteria:**
+
 - [x] Mock prober: 3 fails → deleted + handler; success resets counter
 - [x] 12h timer start/stop
 - [x] HEAD with GET fallback behavior covered or documented in prober
 
 **Verification:**
+
 - [x] `ctest --test-dir build-server -C Release -R UrlHealth --output-on-failure`
 
 **Dependencies:** Task 3  
-**Files likely touched:** `src/server/url_health/*`, `tests/server/url_health/url_health_service_test.cpp`  
+**Files likely touched:** `src/server/url_health/`*, `tests/server/url_health/url_health_service_test.cpp`  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). Threshold=3; removed handler ready for WsPush in Task 10.
 
 ---
 
+
+
 ## Task 10: ServerApp wiring
 
 **Description:** Compose config, store, sources, ingest, health, HTTP, WS in `ServerApp`; single process entry runs all; health removals push WS.
 
 **Acceptance criteria:**
+
 - [x] One `SquareDanceServer` process serves HTTP+WS and runs timers
 - [x] Health deletion emits `video.removed`
 - [x] Example configs + authorized catalog documented for local run
 
 **Verification:**
+
 - [x] Manual E2E: start server → ingest → search → kill URL in DB simulation or mock → removed event
 - [x] All server ctests still green
 
 **Dependencies:** Task 6, Task 7, Task 8, Task 9  
-**Files likely touched:** `src/server/ServerApp.*`, `src/server/main.cpp`, `config/*`  
+**Files likely touched:** `src/server/ServerApp.`*, `src/server/main.cpp`, `config/`*  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). See `config/run-server.txt`. Integration test covers boot+ingest+HTTP search; health→WS wired in ServerApp.
 
 ---
+
+
 
 ## Checkpoint B — Authorized → HTTP → WS
 
@@ -232,6 +274,8 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 ---
 
+
+
 ## Checkpoint C — Backend E2E
 
 - [x] Server-only flow demos search + push + health delete
@@ -240,70 +284,84 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 ---
 
+
+
 ## Task 11: client-shell
 
 **Description:** `SquareDanceApp` Qt5 Widgets target, `ClientConfig`, empty `MainWindow`, client GTest smoke. No SQLite.
 
 **Acceptance criteria:**
+
 - [x] App opens a window with `--config config/client.json`
 - [x] Config has `http_base_url`, `ws_url`, `download_dir`
 - [x] Client smoke GTest passes
 - [x] No QtSql in client link line
 
 **Verification:**
+
 - [x] Configure with Qt `CMAKE_PREFIX_PATH`; build `SquareDanceApp`
 - [x] `ctest --test-dir build-client -C Release -R ClientConfig --output-on-failure` (also MainWindow smoke)
 - [x] Manual: window visible
 
 **Dependencies:** Task 1  
-**Files likely touched:** `src/client/main.cpp`, `ClientConfig.*`, `MainWindow.*`, `config/client.json.example`, `tests/client/*`  
+**Files likely touched:** `src/client/main.cpp`, `ClientConfig.`*, `MainWindow.`*, `config/client.json.example`, `tests/client/*`  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). Qt 5.12 msvc2017_64; POST_BUILD windeployqt; see `config/run-client.txt`.
 
 ---
 
+
+
 ## Task 12: CatalogClient + CatalogModel
 
 **Description:** HTTP search/detail client; list model for UI binding; parse common JSON.
 
 **Acceptance criteria:**
+
 - [x] `search(name)` emits results or error
 - [x] Model resets from search results
 - [x] JSON parse unit test from fixture
 
 **Verification:**
+
 - [x] `ctest --test-dir build-client -C Release -R "[Cc]atalog" --output-on-failure`
 - [ ] Manual against running server: search returns rows (optional; covered by FakeSearchServer unit test)
 
 **Dependencies:** Task 6, Task 11  
-**Files likely touched:** `src/client/api/CatalogClient.*`, `CatalogModel.*`, `tests/client/api/*`  
+**Files likely touched:** `src/client/api/CatalogClient.`*, `CatalogModel.`*, `tests/client/api/*`  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). `CatalogClient`/`CatalogModel`/`catalog_json`; Qt Network; getById ready for later UI.
 
 ---
 
+
+
 ## Task 13: PushClient
 
 **Description:** Qt WebSockets client; reconnect backoff; apply upsert/remove to `CatalogModel` per elder-ui filter rules.
 
 **Acceptance criteria:**
+
 - [x] Connects to `ws_url`; handles `video.upserted` / `video.removed`
 - [x] Connection state signal for UI
 - [x] Ignores unknown message types
 
 **Verification:**
+
 - [ ] Manual: server ingest → client model updates without re-search (deferred to Checkpoint D / Task 16 wiring)
 - [x] Unit test for JSON message dispatch if practical
 
 **Dependencies:** Task 7, Task 12  
-**Files likely touched:** `src/client/api/PushClient.*`, model update helpers  
+**Files likely touched:** `src/client/api/PushClient.`*, model update helpers  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). `PushClient` + `push_json`; model `applyUpserted`/`applyRemoved` with elder filter rules; reconnect backoff 1s→30s.
 
 ---
+
+
 
 ## Checkpoint D — Client catalog live
 
@@ -313,80 +371,110 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 ---
 
+
+
 ## Task 14: Playback
 
 **Description:** `PlaybackController` + video widget; play/pause/stop from `play_url`; must not write download dir.
 
 **Acceptance criteria:**
+
 - [x] Play selected video URL
 - [x] Play path does not call download APIs / does not create files in `download_dir`
 - [x] Error signal on empty/bad URL
 
 **Verification:**
+
 - [x] Test or script asserting download_dir unchanged after play-only
 - [ ] Manual play of authorized sample mp4 (needs multimedia plugins + live URL)
 
 **Dependencies:** Task 12  
-**Files likely touched:** `src/client/playback/*`, `tests/client/playback/*`  
+**Files likely touched:** `src/client/playback/`*, `tests/client/playback/`*  
 **Estimated scope:** M
 
-**Status:** Done (2026-10-09). `PlaybackController` + `VideoPlayerWidget`; empty/invalid URL errors; no download side effects.
+**Status:** Done (2026-10-09; playback path revised 2026-10-10). `PlaybackController` + `VideoPlayerWidget` via ffplay/ffmpeg pipelines; empty/invalid URL errors; no download side effects. Playback quality (A/V sync, embedded UX) deferred to Phase F polish.
 
 ---
+
+
 
 ## Task 15: Download
 
 **Description:** Explicit `DownloadService` to `download_dir`; progress/finished/error; cancel cleans partial.
 
 **Acceptance criteria:**
+
 - [x] User-triggered download creates local file
 - [x] Not invoked from playback
 - [x] Progress signals fire
 
 **Verification:**
+
 - [x] `ctest` or manual download of small file URL
 - [x] Confirm playback module has no link/call to DownloadService
 
 **Dependencies:** Task 11  
-**Files likely touched:** `src/client/download/*`, `tests/client/download/*`  
+**Files likely touched:** `src/client/download/`*, `tests/client/download/`*  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). `DownloadService` with progress/finished/cancel-cleans-partial; Fake HTTP tests.
 
 ---
 
+
+
 ## Task 16: ElderMainWindow
 
 **Description:** Wire search bar, large result list, play, download, connection status; Chinese labels; fonts ≥ 16/18; no elder「立即同步」.
 
 **Acceptance criteria:**
+
 - [x] Name search → list → Play / Download behaviors match specs
 - [x] WS connected/disconnected visible
 - [x] Push updates list per filter rules in `SPEC-elder-ui.md`
 - [ ] Manual arm’s-length readability pass
 
 **Verification:**
+
 - [ ] Manual checklist against running server + sample catalog
 - [x] Full client+server build green
 
 **Dependencies:** Task 13, Task 14, Task 15  
-**Files likely touched:** `src/client/elder_ui/*`, `MainWindow` integration  
+**Files likely touched:** `src/client/elder_ui/`*, `MainWindow` integration  
 **Estimated scope:** M
 
 **Status:** Done (2026-10-09). `ElderMainWindow` wires search/push/play/download; Chinese labels; 16/18pt fonts; no「立即同步」.
 
 ---
 
+
+
 ## Checkpoint E — v1 complete
 
 - [x] All module success criteria from approved SPECs met or explicitly deferred
 - [x] Server builds without Qt; client builds with Qt
 - [x] Play does not auto-download; download is explicit
-- [ ] Human product acceptance before polish/CI extras
+- [x] Human product acceptance before polish/CI extras (2026-10-10: accept v1 with known playback quality gap — ffplay pipeline works but A/V sync / UX not polished; defer playback polish)
 
 ---
 
-## Notes
+## Phase F — Polish / CI (post-v1)
 
-- Prefer implementing **one task per session**; stop at checkpoints for review.
-- Do not start Task N until dependencies are done and prior checkpoint (if any) is acknowledged when the plan requires human review.
+Track follow-ups after Checkpoint E. Pick slices as needed.
+
+### Task 17: CI (server without Qt)
+
+**Description:** Add CI job that configures/builds server with `BUILD_CLIENT=OFF` and runs server GTests (no Qt on the runner).
+
+**Acceptance criteria:**
+
+- [ ] Workflow or documented script builds `SquareDanceServer` without Qt
+- [ ] Server test suite runs green in CI (or local equivalent documented for proxy environments)
+
+**Status:** Next
+
+**Dependencies:** Checkpoint E  
+**Estimated scope:** M
+
+---
+

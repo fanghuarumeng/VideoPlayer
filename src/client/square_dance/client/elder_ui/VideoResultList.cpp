@@ -1,25 +1,24 @@
 #include "square_dance/client/elder_ui/VideoResultList.h"
 
 #include "square_dance/client/api/CatalogModel.h"
+#include "square_dance/client/elder_ui/ElderStyle.h"
 
 #include <QAbstractItemView>
-#include <QFont>
 
 namespace square_dance {
 namespace client {
 
 VideoResultList::VideoResultList(QWidget* parent) : QListView(parent) {
-  QFont body;
-  body.setPointSize(16);
-  setFont(body);
+  setFont(ElderStyle::BodyFont());
+  setStyleSheet(ElderStyle::ListStyle());
   setUniformItemSizes(true);
   setSelectionMode(QAbstractItemView::SingleSelection);
-  setAlternatingRowColors(true);
+  setAlternatingRowColors(false);
+  setFocusPolicy(Qt::StrongFocus);
+  setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 }
 
-void VideoResultList::setCatalogModel(CatalogModel* model) {
-  setModel(model);
-}
+void VideoResultList::setCatalogModel(CatalogModel* model) { setModel(model); }
 
 }  // namespace client
 }  // namespace square_dance

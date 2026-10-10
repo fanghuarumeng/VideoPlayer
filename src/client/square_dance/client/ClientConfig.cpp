@@ -34,7 +34,7 @@ bool RequireString(const nlohmann::json& j,
 ClientConfig MakeDefaultClientConfig() {
   ClientConfig cfg;
   cfg.http_base_url = QString::fromUtf8("http://127.0.0.1:8080");
-  cfg.ws_url = QString::fromUtf8("ws://127.0.0.1:8081");
+  cfg.ws_url = QString::fromUtf8("ws://127.0.0.1:8081/ws");
   cfg.download_dir = QString::fromUtf8("downloads");
   return cfg;
 }
