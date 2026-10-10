@@ -186,6 +186,7 @@ if(BUILD_CLIENT)
     src/client/square_dance/client/library/LibraryPane.cpp
     src/client/square_dance/client/library/UploadController.cpp
     src/client/square_dance/client/history/PlayHistoryStore.cpp
+    src/client/square_dance/client/history/HistoryPane.cpp
     ${SQUARE_DANCE_CLIENT_RESOURCES}
   )
   target_include_directories(square_dance_client_lib PUBLIC

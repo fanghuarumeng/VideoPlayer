@@ -22,6 +22,7 @@ class DownloadService;
 class LibraryPane;
 class UploadController;
 class PlayHistoryStore;
+class HistoryPane;
 class PlaybackController;
 class PlayerPane;
 class PlaylistPane;
@@ -62,6 +63,7 @@ class ElderMainWindow : public QMainWindow {
   void onVideoUpserted(const Video& video);
   void onVideoRemoved(qint64 id);
   void onPlaybackProgressForHistory(double position_sec, double duration_sec);
+  void onHistoryPlayRequested(const Video& video, qint64 position_ms);
   void SetStatusMessage(const QString& message);
 
  private:
@@ -69,7 +71,7 @@ class ElderMainWindow : public QMainWindow {
   Video VideoFromPlaylistItem(const PlaylistItem& item) const;
   QString ResolvePlaylistPath() const;
   QString ResolveHistoryPath() const;
-  void PlayVideo(const Video& video);
+  void PlayVideo(const Video& video, qint64 seek_ms = -1);
   void RecordHistory(double position_sec, double duration_sec);
 
   ClientConfig config_;
@@ -84,7 +86,7 @@ class ElderMainWindow : public QMainWindow {
   LibraryPane* library_pane_;
   UploadController* upload_;
   PlayHistoryStore* history_store_;
-  QWidget* history_placeholder_;
+  HistoryPane* history_pane_;
 
   CatalogModel* model_;
   CatalogClient* catalog_;

@@ -12,6 +12,7 @@
 #include "square_dance/client/elder_ui/SearchBar.h"
 #include "square_dance/client/elder_ui/VideoResultList.h"
 #include "square_dance/client/library/LibraryPane.h"
+#include "square_dance/client/history/HistoryPane.h"
 #include "square_dance/client/history/PlayHistoryStore.h"
 #include "square_dance/client/library/UploadController.h"
 #include "square_dance/client/playback/PlaybackController.h"
@@ -32,6 +33,7 @@
 #include <QStandardPaths>
 #include <QStatusBar>
 #include <QTabWidget>
+#include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -53,7 +55,7 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
       library_pane_(NULL),
       upload_(NULL),
       history_store_(NULL),
-      history_placeholder_(NULL),
+      history_pane_(NULL),
       model_(new CatalogModel(this)),
       catalog_(new CatalogClient(config.http_base_url, this)),
       push_(new PushClient(this)),
@@ -95,14 +97,7 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
 
   library_pane_ = new LibraryPane(this);
   playlist_pane_ = new PlaylistPane(playlist_store_, this);
-
-  history_placeholder_ = new QWidget(this);
-  QVBoxLayout* hist_layout = new QVBoxLayout(history_placeholder_);
-  QLabel* hist_label = new QLabel(
-      QString::fromUtf8("播放历史将在后续版本启用。"), history_placeholder_);
-  hist_label->setStyleSheet(AppTheme::PanelTitleStyle());
-  hist_layout->addWidget(hist_label);
-  hist_layout->addStretch(1);
+  history_pane_ = new HistoryPane(history_store_, this);
 
   search_bar_ = new SearchBar(this);
   result_list_ = new VideoResultList(this);
@@ -121,7 +116,7 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
   side_tabs_ = new QTabWidget(this);
   side_tabs_->addTab(library_pane_, QString::fromUtf8("视频库"));
   side_tabs_->addTab(playlist_pane_, QString::fromUtf8("播放列表"));
-  side_tabs_->addTab(history_placeholder_, QString::fromUtf8("历史"));
+  side_tabs_->addTab(history_pane_, QString::fromUtf8("历史"));
   side_tabs_->addTab(search_page, QString::fromUtf8("搜索"));
   side_tabs_->setCurrentIndex(0);
 
@@ -229,6 +224,8 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
           &ElderMainWindow::onLibraryAddToPlaylist);
   connect(library_pane_, &LibraryPane::playRequested, this,
           &ElderMainWindow::onLibraryPlayRequested);
+  connect(history_pane_, &HistoryPane::playRequested, this,
+          &ElderMainWindow::onHistoryPlayRequested);
   connect(upload_, &UploadController::statusMessage, this,
           &ElderMainWindow::SetStatusMessage);
   connect(upload_, &UploadController::uploadFinished, this,
@@ -266,12 +263,27 @@ Video ElderMainWindow::VideoFromPlaylistItem(const PlaylistItem& item) const {
   return video;
 }
 
-void ElderMainWindow::PlayVideo(const Video& video) {
+void ElderMainWindow::PlayVideo(const Video& video, qint64 seek_ms) {
   current_video_ = video;
   last_history_save_ms_ = 0;
   SetStatusMessage(QString::fromUtf8("正在播放：") + video.title);
   playback_->play(video);
-  RecordHistory(0.0, 0.0);
+  RecordHistory(seek_ms > 0 ? (seek_ms / 1000.0) : 0.0, 0.0);
+  if (seek_ms > 0) {
+    const double seek_sec = static_cast<double>(seek_ms) / 1000.0;
+    QTimer::singleShot(400, playback_, [this, seek_sec]() {
+      playback_->seekTo(seek_sec);
+    });
+  }
+  if (history_pane_ != NULL) {
+    history_pane_->refresh();
+  }
+}
+
+void ElderMainWindow::onHistoryPlayRequested(const Video& video,
+                                            qint64 position_ms) {
+  playing_from_playlist_ = false;
+  PlayVideo(video, position_ms);
 }
 
 void ElderMainWindow::RecordHistory(double position_sec, double duration_sec) {
@@ -282,6 +294,9 @@ void ElderMainWindow::RecordHistory(double position_sec, double duration_sec) {
   const qint64 dur_ms = static_cast<qint64>(duration_sec * 1000.0);
   history_store_->recordProgress(current_video_, pos_ms, dur_ms);
   last_history_save_ms_ = QDateTime::currentMSecsSinceEpoch();
+  if (history_pane_ != NULL) {
+    history_pane_->refresh();
+  }
 }
 
 void ElderMainWindow::onPlaybackProgressForHistory(double position_sec,
