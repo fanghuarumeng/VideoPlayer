@@ -617,18 +617,18 @@ Plan index: `tasks/plan.md` Phase G.
 
 **Acceptance criteria:**
 
-- [ ] Round-trip persists items + index
-- [ ] Dedupe by id; clear empties file
-- [ ] GTest on temp path green
+- [x] Round-trip persists items + index
+- [x] Dedupe by id; clear empties file
+- [x] GTest on temp path green
 
 **Verification:**
 
-- [ ] `ctest --test-dir build-client -C Release -R playlist --output-on-failure`
+- [x] `ctest --test-dir build-client -C Release -R PlaylistStore` — 3/3 passed (2026-10-10)
 
 **Dependencies:** Checkpoint G1 (metadata URLs useful but store can start after Task 20 DTO)  
 **Files likely touched:** `src/client/.../playlist/PlaylistStore.*`, tests, optional `client.json.example`  
 **Estimated scope:** M  
-**Status:** Pending
+**Status:** Done (2026-10-10)
 
 ---
 

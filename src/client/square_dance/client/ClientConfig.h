@@ -9,6 +9,7 @@ struct ClientConfig {
   QString http_base_url;
   QString ws_url;
   QString download_dir;
+  QString playlist_path;  // empty → caller chooses AppData default
 };
 
 ClientConfig MakeDefaultClientConfig();

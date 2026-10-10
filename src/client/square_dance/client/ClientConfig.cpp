@@ -36,6 +36,7 @@ ClientConfig MakeDefaultClientConfig() {
   cfg.http_base_url = QString::fromUtf8("http://127.0.0.1:8080");
   cfg.ws_url = QString::fromUtf8("ws://127.0.0.1:8081/ws");
   cfg.download_dir = QString::fromUtf8("downloads");
+  cfg.playlist_path.clear();
   return cfg;
 }
 
@@ -77,6 +78,15 @@ bool LoadClientConfigFromString(const QString& json_text,
   }
   if (!RequireString(j, "download_dir", &cfg.download_dir, error)) {
     return false;
+  }
+  if (j.contains("playlist_path")) {
+    if (!j.at("playlist_path").is_string()) {
+      if (error != NULL) {
+        *error = QString::fromUtf8("playlist_path must be a string");
+      }
+      return false;
+    }
+    cfg.playlist_path = FromUtf8(j.at("playlist_path").get<std::string>());
   }
 
   *out = cfg;
