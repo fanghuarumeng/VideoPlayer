@@ -1,0 +1,31 @@
+name: Server CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ ninja-build
+
+      - name: Configure (no Qt)
+        run: |
+          cmake -S . -B build-server-ci -G Ninja \
+            -DBUILD_SERVER=ON \
+            -DBUILD_CLIENT=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build-server-ci
+
+      - name: Test
+        run: ctest --test-dir build-server-ci --output-on-failure

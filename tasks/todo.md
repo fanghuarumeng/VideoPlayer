@@ -468,12 +468,18 @@ Track follow-ups after Checkpoint E. Pick slices as needed.
 
 **Acceptance criteria:**
 
-- [ ] Workflow or documented script builds `SquareDanceServer` without Qt
-- [ ] Server test suite runs green in CI (or local equivalent documented for proxy environments)
+- [x] Workflow or documented script builds `SquareDanceServer` without Qt
+- [x] Server test suite runs green in CI (or local equivalent documented for proxy environments)
 
-**Status:** Next
+**Verification:**
+
+- [x] `powershell -ExecutionPolicy Bypass -File scripts/ci-server.ps1` (Windows) — 29/29 passed (2026-10-10)
+- [ ] GitHub Actions `Server CI` when remote is connected (no remote yet)
+
+**Status:** Done (2026-10-10). Local script + GH workflow; Actions pending remote.
 
 **Dependencies:** Checkpoint E  
+**Files likely touched:** `scripts/ci-server.ps1`, `scripts/ci-server.sh`, `.github/workflows/server-ci.yml`  
 **Estimated scope:** M
 
 ---

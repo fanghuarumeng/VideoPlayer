@@ -73,7 +73,11 @@ Full acceptance/verification detail lives in `tasks/todo.md`.
 - Task 14: `PlaybackController` (no download side effects)
 - Task 15: `DownloadService` (explicit only)
 - Task 16: `ElderMainWindow` integrate search/play/download/status
-- **Checkpoint E** — product v1 manual acceptance
+- **Checkpoint E** — product v1 manual acceptance (accepted 2026-10-10; playback quality polish deferred)
+
+### Phase F — Polish / CI (post-v1)
+- Task 17: Server CI without Qt (`scripts/ci-server.*` + GitHub Actions)
+- Deferred: playback A/V sync / embedded UX polish
 
 ## Parallelization
 
