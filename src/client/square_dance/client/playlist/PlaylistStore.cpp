@@ -102,6 +102,11 @@ bool PlaylistStore::load(QString* error) {
         if (it->contains("play_url") && (*it)["play_url"].is_string()) {
           item.play_url = FromUtf8((*it)["play_url"].get<std::string>());
         }
+        if (it->contains("download_url") &&
+            (*it)["download_url"].is_string()) {
+          item.download_url =
+              FromUtf8((*it)["download_url"].get<std::string>());
+        }
         if (it->contains("thumbnail_url") &&
             (*it)["thumbnail_url"].is_string()) {
           item.thumbnail_url =
@@ -137,6 +142,7 @@ bool PlaylistStore::save(QString* error) const {
         {"id", item.id},
         {"title", ToUtf8(item.title)},
         {"play_url", ToUtf8(item.play_url)},
+        {"download_url", ToUtf8(item.download_url)},
         {"thumbnail_url", ToUtf8(item.thumbnail_url)},
     });
   }
@@ -188,6 +194,7 @@ bool PlaylistStore::append(const Video& video) {
   item.id = video.id;
   item.title = video.title;
   item.play_url = video.play_url;
+  item.download_url = video.download_url;
   item.thumbnail_url = video.thumbnail_url;
   return append(item);
 }
@@ -207,6 +214,11 @@ bool PlaylistStore::mergeFromVideo(const Video& video) {
     }
     if (!video.play_url.isEmpty() && items_[i].play_url != video.play_url) {
       items_[i].play_url = video.play_url;
+      changed = true;
+    }
+    if (!video.download_url.isEmpty() &&
+        items_[i].download_url != video.download_url) {
+      items_[i].download_url = video.download_url;
       changed = true;
     }
     if (!video.thumbnail_url.isEmpty() &&

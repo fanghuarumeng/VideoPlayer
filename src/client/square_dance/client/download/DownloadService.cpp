@@ -2,6 +2,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -17,6 +18,10 @@ DownloadService::DownloadService(const QString& download_dir, QObject* parent)
       nam_(new QNetworkAccessManager(this)) {}
 
 QString DownloadService::download_dir() const { return download_dir_; }
+
+QString DownloadService::defaultFileName(const Video& video) const {
+  return SanitizeFileName(video);
+}
 
 QString DownloadService::SanitizeFileName(const Video& video) const {
   QString base = video.title.trimmed();
@@ -44,11 +49,19 @@ DownloadService::ActiveDownload* DownloadService::FindByReply(
 }
 
 void DownloadService::startDownload(const Video& video) {
+  startDownload(video, QString());
+}
+
+void DownloadService::startDownload(const Video& video,
+                                    const QString& local_path_in) {
   if (by_id_.contains(video.id)) {
     emit errorOccurred(video.id, QString::fromUtf8("该视频正在下载"));
     return;
   }
-  const QString url = video.download_url.trimmed();
+  QString url = video.download_url.trimmed();
+  if (url.isEmpty()) {
+    url = video.play_url.trimmed();
+  }
   if (url.isEmpty()) {
     emit errorOccurred(video.id, QString::fromUtf8("下载地址为空"));
     return;
@@ -59,9 +72,14 @@ void DownloadService::startDownload(const Video& video) {
     return;
   }
 
-  QDir().mkpath(download_dir_);
-  const QString file_name = SanitizeFileName(video);
-  const QString local_path = QDir(download_dir_).filePath(file_name);
+  QString local_path = local_path_in.trimmed();
+  if (local_path.isEmpty()) {
+    QDir().mkpath(download_dir_);
+    local_path = QDir(download_dir_).filePath(SanitizeFileName(video));
+  } else {
+    const QFileInfo info(local_path);
+    QDir().mkpath(info.absolutePath());
+  }
   const QString temp_path = local_path + QString::fromUtf8(".partial");
 
   QFile* file = new QFile(temp_path);

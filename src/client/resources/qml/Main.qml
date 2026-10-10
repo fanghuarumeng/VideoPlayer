@@ -1,6 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
+import QtQuick.Window 2.12
 import QtGraphicalEffects 1.12
 import SquareDance 1.0
 
@@ -9,10 +10,22 @@ ApplicationWindow {
     visible: true
     width: 1280
     height: 800
+    minimumWidth: 960
+    minimumHeight: 600
     title: "Video Player"
     color: "#353A40"
+    // Drop the native white title bar; chrome is drawn in-app.
+    flags: Qt.Window | Qt.FramelessWindowHint
 
     property var player: playerBridge
+    property bool isMaximized: visibility === Window.Maximized
+
+    function toggleMaximize() {
+        if (win.isMaximized)
+            win.showNormal()
+        else
+            win.showMaximized()
+    }
 
     // Full-window frame used only as blur source
     VideoFrameItem {
@@ -43,85 +56,123 @@ ApplicationWindow {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 20
+        anchors.margins: win.isMaximized ? 12 : 20
         spacing: 12
         z: 1
 
-        RowLayout {
+        // Custom title / nav bar (drag + transparent window buttons)
+        Item {
             Layout.fillWidth: true
-            spacing: 12
+            Layout.preferredHeight: 36
 
-            Text {
-                text: "Video Player"
-                color: "#FFFFFF"
-                font.pixelSize: 16
-                font.bold: true
-                font.family: "Segoe UI"
+            MouseArea {
+                id: titleDrag
+                anchors.fill: parent
+                anchors.rightMargin: 150
+                property point pressPos
+                onPressed: pressPos = Qt.point(mouse.x, mouse.y)
+                onPositionChanged: {
+                    if (!pressed || win.isMaximized)
+                        return
+                    win.x += mouse.x - pressPos.x
+                    win.y += mouse.y - pressPos.y
+                }
+                onDoubleClicked: win.toggleMaximize()
             }
 
-            Item { width: 16 }
+            RowLayout {
+                anchors.fill: parent
+                spacing: 12
 
-            Button {
-                text: "\u89c6\u9891\u5e93"
-                onClicked: player.openLibrary()
-                contentItem: Text {
-                    text: parent.text
-                    color: "#B0B3B8"
-                    font.pixelSize: 13
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                background: Rectangle {
-                    color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
-                    implicitHeight: 28
-                    implicitWidth: 72
-                }
-            }
-            Button {
-                text: "\u5386\u53f2"
-                onClicked: player.openHistory()
-                contentItem: Text {
-                    text: parent.text
-                    color: "#B0B3B8"
-                    font.pixelSize: 13
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                background: Rectangle {
-                    color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
-                    implicitHeight: 28
-                    implicitWidth: 56
-                }
-            }
-            Button {
-                text: "\u641c\u7d22"
-                onClicked: player.openSearch()
-                contentItem: Text {
-                    text: parent.text
-                    color: "#B0B3B8"
-                    font.pixelSize: 13
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                background: Rectangle {
-                    color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
-                    implicitHeight: 28
-                    implicitWidth: 56
-                }
-            }
-
-            Item { Layout.fillWidth: true }
-
-            Rectangle {
-                radius: 14
-                color: player && player.liveConnected ? "#16301f" : "#3a1a1a"
-                border.color: player && player.liveConnected ? "#22c55e" : "#ef4444"
-                implicitHeight: 28
-                implicitWidth: liveLabel.implicitWidth + 24
                 Text {
-                    id: liveLabel
-                    anchors.centerIn: parent
-                    text: player && player.liveConnected ? "Live" : "Offline"
-                    color: player && player.liveConnected ? "#22c55e" : "#ef4444"
-                    font.pixelSize: 12
+                    text: "Video Player"
+                    color: "#FFFFFF"
+                    font.pixelSize: 16
                     font.bold: true
+                    font.family: "Segoe UI"
+                }
+
+                Item { width: 8 }
+
+                Button {
+                    text: "\u89c6\u9891\u5e93"
+                    onClicked: player.openLibrary()
+                    contentItem: Text {
+                        text: parent.text
+                        color: "#B0B3B8"
+                        font.pixelSize: 13
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
+                        implicitHeight: 28
+                        implicitWidth: 72
+                    }
+                }
+                Button {
+                    text: "\u5386\u53f2"
+                    onClicked: player.openHistory()
+                    contentItem: Text {
+                        text: parent.text
+                        color: "#B0B3B8"
+                        font.pixelSize: 13
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
+                        implicitHeight: 28
+                        implicitWidth: 56
+                    }
+                }
+                Button {
+                    text: "\u641c\u7d22"
+                    onClicked: player.openSearch()
+                    contentItem: Text {
+                        text: parent.text
+                        color: "#B0B3B8"
+                        font.pixelSize: 13
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
+                        implicitHeight: 28
+                        implicitWidth: 56
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Rectangle {
+                    radius: 14
+                    color: player && player.liveConnected ? "#16301f" : "#3a1a1a"
+                    border.color: player && player.liveConnected ? "#22c55e" : "#ef4444"
+                    implicitHeight: 28
+                    implicitWidth: liveLabel.implicitWidth + 24
+                    Text {
+                        id: liveLabel
+                        anchors.centerIn: parent
+                        text: player && player.liveConnected ? "Live" : "Offline"
+                        color: player && player.liveConnected ? "#22c55e" : "#ef4444"
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
+                }
+
+                Row {
+                    spacing: 0
+                    TitleBarButton {
+                        text: "\u2013"
+                        onClicked: win.showMinimized()
+                    }
+                    TitleBarButton {
+                        text: win.isMaximized ? "\u2750" : "\u25A1"
+                        onClicked: win.toggleMaximize()
+                    }
+                    TitleBarButton {
+                        text: "\u2715"
+                        danger: true
+                        onClicked: win.close()
+                    }
                 }
             }
         }

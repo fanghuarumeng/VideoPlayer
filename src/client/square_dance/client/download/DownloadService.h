@@ -20,9 +20,12 @@ class DownloadService : public QObject {
   explicit DownloadService(const QString& download_dir, QObject* parent = 0);
 
   void startDownload(const Video& video);
+  // If local_path is empty, saves under download_dir() with a sanitized name.
+  void startDownload(const Video& video, const QString& local_path);
   void cancel(qint64 video_id);
 
   QString download_dir() const;
+  QString defaultFileName(const Video& video) const;
 
  signals:
   void progress(qint64 video_id, qint64 received, qint64 total);

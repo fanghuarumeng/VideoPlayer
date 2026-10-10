@@ -11,5 +11,6 @@
     <file alias="qml/Main.qml">qml/Main.qml</file>
     <file alias="qml/UpNext.qml">qml/UpNext.qml</file>
     <file alias="qml/PlayerControls.qml">qml/PlayerControls.qml</file>
+    <file alias="qml/TitleBarButton.qml">qml/TitleBarButton.qml</file>
   </qresource>
 </RCC>

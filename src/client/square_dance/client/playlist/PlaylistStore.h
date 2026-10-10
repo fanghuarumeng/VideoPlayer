@@ -14,6 +14,7 @@ struct PlaylistItem {
   qint64 id;
   QString title;
   QString play_url;
+  QString download_url;
   QString thumbnail_url;
 };
 

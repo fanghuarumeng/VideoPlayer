@@ -287,6 +287,8 @@ Video ElderMainWindow::VideoFromPlaylistItem(const PlaylistItem& item) const {
   video.id = item.id;
   video.title = item.title;
   video.play_url = item.play_url;
+  video.download_url = item.download_url.isEmpty() ? item.play_url
+                                                   : item.download_url;
   video.thumbnail_url = item.thumbnail_url;
   video.source_type = QString::fromUtf8("playlist");
   return video;

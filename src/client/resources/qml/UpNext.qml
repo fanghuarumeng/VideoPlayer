@@ -99,25 +99,49 @@ Item {
             }
         }
 
-        Button {
+        RowLayout {
             Layout.fillWidth: true
-            text: "MORE"
-            // Load more: open library to add videos (do not clear the list).
-            onClicked: if (player) player.openLibrary()
-            contentItem: Text {
-                text: parent.text
-                color: "#FFFFFF"
-                font.pixelSize: 12
-                font.bold: true
-                font.letterSpacing: 1
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
+            spacing: 8
+
+            Button {
+                Layout.fillWidth: true
+                text: "\u66f4\u591a"
+                // Load more: open library to add videos (do not clear the list).
+                onClicked: if (player) player.openLibrary()
+                contentItem: Text {
+                    text: parent.text
+                    color: "#FFFFFF"
+                    font.pixelSize: 12
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.down ? Qt.rgba(1,1,1,0.15)
+                                       : (parent.hovered ? Qt.rgba(1,1,1,0.30)
+                                                         : Qt.rgba(1,1,1,0.20))
+                    implicitHeight: 28
+                }
             }
-            background: Rectangle {
-                color: parent.down ? Qt.rgba(1,1,1,0.15)
-                                   : (parent.hovered ? Qt.rgba(1,1,1,0.30)
-                                                     : Qt.rgba(1,1,1,0.20))
-                implicitHeight: 28
+
+            Button {
+                Layout.fillWidth: true
+                text: "\u6e05\u7a7a"
+                onClicked: if (player) player.clearPlaylist()
+                contentItem: Text {
+                    text: parent.text
+                    color: "#FFFFFF"
+                    font.pixelSize: 12
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.down ? Qt.rgba(1,1,1,0.15)
+                                       : (parent.hovered ? Qt.rgba(1,1,1,0.30)
+                                                         : Qt.rgba(1,1,1,0.20))
+                    implicitHeight: 28
+                }
             }
         }
     }

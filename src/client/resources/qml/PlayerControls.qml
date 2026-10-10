@@ -33,7 +33,6 @@ Item {
             Layout.fillWidth: true
             height: 16
 
-            // Track
             Rectangle {
                 id: track
                 anchors.verticalCenter: parent.verticalCenter
@@ -82,7 +81,6 @@ Item {
                 onPositionChanged: {
                     if (pressed && player && player.durationSec > 0) {
                         var r = Math.max(0, Math.min(1, mouse.x / width))
-                        // visual only via seek while dragging
                         player.seekRatio(r)
                     }
                 }
@@ -91,69 +89,107 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: 4
 
             ToolButton {
-                text: "▶"
                 flat: true
+                hoverEnabled: true
+                implicitWidth: 36
+                implicitHeight: 36
+                ToolTip.visible: hovered
+                ToolTip.delay: 400
+                ToolTip.text: "播放"
                 onClicked: if (player) player.playSelectedOrResume()
-                contentItem: Text {
-                    text: parent.text
-                    color: "#FFFFFF"
-                    font.pixelSize: 16
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                contentItem: Item {
+                    implicitWidth: 22
+                    implicitHeight: 22
+                    Image {
+                        anchors.fill: parent
+                        source: "qrc:/app/icons/play.svg"
+                        sourceSize: Qt.size(22, 22)
+                        fillMode: Image.PreserveAspectFit
+                    }
                 }
                 background: Rectangle {
                     color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
+                    radius: 4
                 }
             }
             ToolButton {
-                text: player && player.paused ? "▶" : "❚❚"
                 flat: true
+                hoverEnabled: true
+                implicitWidth: 36
+                implicitHeight: 36
+                ToolTip.visible: hovered
+                ToolTip.delay: 400
+                ToolTip.text: player && player.paused ? "继续" : "暂停"
                 onClicked: if (player) player.pauseToggle()
-                contentItem: Text {
-                    text: parent.text
-                    color: "#FFFFFF"
-                    font.pixelSize: 14
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                contentItem: Item {
+                    implicitWidth: 22
+                    implicitHeight: 22
+                    Image {
+                        anchors.fill: parent
+                        source: player && player.paused
+                                ? "qrc:/app/icons/play.svg"
+                                : "qrc:/app/icons/pause.svg"
+                        sourceSize: Qt.size(22, 22)
+                        fillMode: Image.PreserveAspectFit
+                    }
                 }
                 background: Rectangle {
                     color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
+                    radius: 4
                 }
             }
             ToolButton {
-                text: "■"
                 flat: true
+                hoverEnabled: true
+                implicitWidth: 36
+                implicitHeight: 36
+                ToolTip.visible: hovered
+                ToolTip.delay: 400
+                ToolTip.text: "停止"
                 onClicked: if (player) player.stop()
-                contentItem: Text {
-                    text: parent.text
-                    color: "#FFFFFF"
-                    font.pixelSize: 14
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                contentItem: Item {
+                    implicitWidth: 22
+                    implicitHeight: 22
+                    Image {
+                        anchors.fill: parent
+                        source: "qrc:/app/icons/stop.svg"
+                        sourceSize: Qt.size(22, 22)
+                        fillMode: Image.PreserveAspectFit
+                    }
                 }
                 background: Rectangle {
                     color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
+                    radius: 4
                 }
             }
 
             Item { Layout.fillWidth: true }
 
             ToolButton {
-                text: "⇩"
                 flat: true
+                hoverEnabled: true
+                implicitWidth: 36
+                implicitHeight: 36
+                ToolTip.visible: hovered
+                ToolTip.delay: 400
+                ToolTip.text: "下载"
                 onClicked: if (player) player.downloadCurrent()
-                contentItem: Text {
-                    text: parent.text
-                    color: "#FFFFFF"
-                    font.pixelSize: 16
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                contentItem: Item {
+                    implicitWidth: 22
+                    implicitHeight: 22
+                    Image {
+                        anchors.fill: parent
+                        source: "qrc:/app/icons/download.svg"
+                        sourceSize: Qt.size(22, 22)
+                        fillMode: Image.PreserveAspectFit
+                    }
                 }
                 background: Rectangle {
                     color: parent.hovered ? Qt.rgba(1,1,1,0.10) : "transparent"
+                    radius: 4
                 }
             }
         }

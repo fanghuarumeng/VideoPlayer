@@ -11,10 +11,13 @@
 #include "square_dance/client/qml/SecondaryPaneHost.h"
 
 #include <QDateTime>
+#include <QDir>
+#include <QFileDialog>
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QTimer>
 #include <QUrl>
+#include <QWidget>
 
 namespace square_dance {
 namespace client {
@@ -94,6 +97,23 @@ PlayerUiBridge::PlayerUiBridge(const ClientConfig& config, QObject* parent)
           &PlayerUiBridge::onStatusMessage);
   connect(upload_, &UploadController::uploadFinished, this,
           &PlayerUiBridge::onVideoUpserted);
+  connect(downloads_, &DownloadService::progress, this,
+          [this](qint64, qint64 received, qint64 total) {
+            if (total > 0) {
+              SetStatus(QString::fromUtf8("下载进度：%1%").arg(
+                  static_cast<int>((received * 100) / total)));
+            } else {
+              SetStatus(QString::fromUtf8("已下载 %1 字节").arg(received));
+            }
+          });
+  connect(downloads_, &DownloadService::finished, this,
+          [this](qint64, const QString& local_path) {
+            SetStatus(QString::fromUtf8("下载完成：") + local_path);
+          });
+  connect(downloads_, &DownloadService::errorOccurred, this,
+          [this](qint64, const QString& message) {
+            SetStatus(QString::fromUtf8("下载失败：") + message);
+          });
 
   push_->connectToServer(QUrl(config_.ws_url));
   catalog_->listVideos(200, 0);
@@ -134,6 +154,8 @@ Video PlayerUiBridge::VideoFromPlaylistItem(const PlaylistItem& item) const {
   video.id = item.id;
   video.title = item.title;
   video.play_url = item.play_url;
+  video.download_url = item.download_url.isEmpty() ? item.play_url
+                                                   : item.download_url;
   video.thumbnail_url = item.thumbnail_url;
   video.source_type = QString::fromUtf8("playlist");
   return video;
@@ -268,12 +290,48 @@ void PlayerUiBridge::clearPlaylist() {
 }
 
 void PlayerUiBridge::downloadCurrent() {
-  if (current_video_.id == 0 && current_video_.play_url.isEmpty()) {
+  Video video = current_video_;
+  if (video.id == 0 && video.play_url.isEmpty() && playlist_store_ != NULL) {
+    const QVector<PlaylistItem> items = playlist_store_->items();
+    if (!items.isEmpty()) {
+      int idx = playlist_store_->currentIndex();
+      if (idx < 0 || idx >= items.size()) {
+        idx = 0;
+      }
+      video = VideoFromPlaylistItem(items[idx]);
+    }
+  }
+  if (video.id == 0 && video.play_url.isEmpty()) {
     SetStatus(QString::fromUtf8("请先选择一个视频"));
     return;
   }
-  SetStatus(QString::fromUtf8("开始下载：") + current_video_.title);
-  downloads_->startDownload(current_video_);
+  if (video.download_url.trimmed().isEmpty()) {
+    video.download_url = video.play_url;
+  }
+  if (video.download_url.trimmed().isEmpty()) {
+    SetStatus(QString::fromUtf8("下载地址为空"));
+    return;
+  }
+
+  const QString suggested = QDir(downloads_->download_dir())
+                                .filePath(downloads_->defaultFileName(video));
+  // Native dialog needs a QWidget parent; QML window is not one — raise a
+  // transient host so the save dialog appears above the frameless shell.
+  QWidget host;
+  host.setWindowFlags(Qt::Tool);
+  host.setAttribute(Qt::WA_DontShowOnScreen, true);
+  host.resize(1, 1);
+  host.show();
+  const QString save_path = QFileDialog::getSaveFileName(
+      &host, QString::fromUtf8("保存视频"), suggested,
+      QString::fromUtf8("视频文件 (*.mp4);;所有文件 (*.*)"));
+  host.hide();
+  if (save_path.isEmpty()) {
+    SetStatus(QString::fromUtf8("已取消下载"));
+    return;
+  }
+  SetStatus(QString::fromUtf8("开始下载：") + video.title);
+  downloads_->startDownload(video, save_path);
 }
 
 void PlayerUiBridge::openLibrary() { panes_->openLibrary(); }
