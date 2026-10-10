@@ -87,6 +87,10 @@ std::string LocalMediaStore::videos_dir() const {
   return media_root_ + "/videos";
 }
 
+std::string LocalMediaStore::thumbs_dir() const {
+  return media_root_ + "/thumbs";
+}
+
 std::string LocalMediaStore::ExtensionOf(const std::string& filename) {
   const std::string base = BasenameOnly(filename);
   const std::size_t dot = base.find_last_of('.');
@@ -143,7 +147,7 @@ bool LocalMediaStore::EnsureDirs(std::string* error) {
   }
   MkDirIgnoreExists(media_root_);
   MkDirIgnoreExists(videos_dir());
-  MkDirIgnoreExists(media_root_ + "/thumbs");
+  MkDirIgnoreExists(thumbs_dir());
   return true;
 }
 

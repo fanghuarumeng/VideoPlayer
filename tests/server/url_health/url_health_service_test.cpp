@@ -113,3 +113,31 @@ TEST_F(UrlHealthServiceTest, StartStopDoesNotHang) {
   health.stop();
   SUCCEED();
 }
+
+TEST_F(UrlHealthServiceTest, SkipsLocalUploadEvenIfUnreachable) {
+  std::string error;
+  square_dance::server::Video local = MakeVideo("local-1", "Local");
+  local.source_type = "local_upload";
+  local.play_url = "http://127.0.0.1:9/media/videos/local-1.mp4";
+  local.download_url = local.play_url;
+  ASSERT_TRUE(repo_.upsert(local, &error)) << error;
+
+  FakeProber prober;
+  prober.default_ok_ = false;
+  std::vector<std::int64_t> removed;
+  square_dance::server::UrlHealthService health(&repo_, &prober, config_);
+  health.set_removed_handler(
+      [&removed](const std::vector<std::int64_t>& ids) {
+        removed.insert(removed.end(), ids.begin(), ids.end());
+      });
+
+  for (int i = 0; i < 5; ++i) {
+    health.runOnce();
+  }
+
+  const std::vector<square_dance::server::Video> all = repo_.listAll(10, 0);
+  ASSERT_EQ(all.size(), 1u);
+  EXPECT_EQ(all[0].source_type, "local_upload");
+  EXPECT_EQ(all[0].consecutive_failures, 0);
+  EXPECT_TRUE(removed.empty());
+}

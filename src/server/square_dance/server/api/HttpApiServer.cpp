@@ -64,6 +64,7 @@ HttpApiServer::HttpApiServer(IVideoRepository* repo, IngestService* ingest)
       ingest_(ingest),
       media_store_(NULL),
       upload_gate_(NULL),
+      thumb_queue_(NULL),
       requested_port_(0),
       bound_port_(0),
       stop_(true),
@@ -76,6 +77,10 @@ HttpApiServer::~HttpApiServer() {
 void HttpApiServer::set_local_media(LocalMediaStore* store, UploadGate* gate) {
   media_store_ = store;
   upload_gate_ = gate;
+}
+
+void HttpApiServer::set_thumbnail_queue(ThumbnailQueue* queue) {
+  thumb_queue_ = queue;
 }
 
 void HttpApiServer::set_upserted_handler(UpsertedHandler handler) {
@@ -239,6 +244,22 @@ void HttpApiServer::RegisterRoutes() {
              }
 
              NotifyUpserted(video);
+
+             if (thumb_queue_ != NULL) {
+               const std::string ext =
+                   LocalMediaStore::ExtensionOf(file.filename);
+               const std::string video_name = video.external_id + ext;
+               const std::string thumb_name = video.external_id + ".jpg";
+               ThumbJob job;
+               job.video_id = video.id;
+               job.video_path =
+                   media_store_->videos_dir() + "/" + video_name;
+               job.thumb_path =
+                   media_store_->thumbs_dir() + "/" + thumb_name;
+               job.thumb_filename = thumb_name;
+               thumb_queue_->enqueue(job);
+             }
+
              res.status = 201;
              res.set_content(VideoToApiJson(video).dump(),
                              "application/json; charset=utf-8");
@@ -271,6 +292,32 @@ void HttpApiServer::RegisterRoutes() {
             res.status = 200;
             res.set_content(body,
                             LocalMediaStore::ContentTypeForExtension(ext));
+          });
+
+  svr.Get(R"(/media/thumbs/(.+))",
+          [this](const httplib::Request& req, httplib::Response& res) {
+            if (media_store_ == NULL) {
+              res.status = 404;
+              return;
+            }
+            const std::string name = req.matches[1].str();
+            if (!IsSafeMediaName(name)) {
+              res.status = 400;
+              res.set_content("{\"error\":\"invalid name\"}",
+                              "application/json");
+              return;
+            }
+            const std::string path = media_store_->thumbs_dir() + "/" + name;
+            std::ifstream in(path.c_str(), std::ios::in | std::ios::binary);
+            if (!in) {
+              res.status = 404;
+              res.set_content("{\"error\":\"not found\"}", "application/json");
+              return;
+            }
+            std::ostringstream ss;
+            ss << in.rdbuf();
+            res.status = 200;
+            res.set_content(ss.str(), "image/jpeg");
           });
 
   svr.Post("/api/v1/ingest/run",

@@ -2,6 +2,7 @@
 
 #include "square_dance/server/ingest/IngestService.h"
 #include "square_dance/server/local_media/LocalMediaStore.h"
+#include "square_dance/server/local_media/ThumbnailQueue.h"
 #include "square_dance/server/local_media/UploadGate.h"
 #include "square_dance/server/video_store/IVideoRepository.h"
 #include "square_dance/server/video_store/Video.h"
@@ -24,6 +25,7 @@ class HttpApiServer {
   ~HttpApiServer();
 
   void set_local_media(LocalMediaStore* store, UploadGate* gate);
+  void set_thumbnail_queue(ThumbnailQueue* queue);
   void set_upserted_handler(UpsertedHandler handler);
 
   // Bind and listen on a background thread. port=0 binds an ephemeral port.
@@ -45,6 +47,7 @@ class HttpApiServer {
   IngestService* ingest_;
   LocalMediaStore* media_store_;
   UploadGate* upload_gate_;
+  ThumbnailQueue* thumb_queue_;
   UpsertedHandler upserted_handler_;
   std::mutex handler_mutex_;
 

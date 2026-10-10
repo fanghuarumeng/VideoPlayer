@@ -23,6 +23,7 @@ class LocalMediaStore {
 
   std::string media_root() const;
   std::string videos_dir() const;
+  std::string thumbs_dir() const;
 
   static bool IsAllowedExtension(const std::string& filename);
   static std::string ExtensionOf(const std::string& filename);

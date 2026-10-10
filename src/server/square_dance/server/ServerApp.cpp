@@ -5,6 +5,8 @@
 #include "square_dance/server/ingest/IngestConfig.h"
 #include "square_dance/server/ingest/IngestService.h"
 #include "square_dance/server/local_media/LocalMediaStore.h"
+#include "square_dance/server/local_media/ThumbnailGenerator.h"
+#include "square_dance/server/local_media/ThumbnailQueue.h"
 #include "square_dance/server/local_media/UploadGate.h"
 #include "square_dance/server/log.h"
 #include "square_dance/server/url_health/UrlHealthService.h"
@@ -130,8 +132,12 @@ bool ServerApp::Start(std::string* error) {
 
   media_store_.reset(new LocalMediaStore(repo_.get(), config_.media_root));
   upload_gate_.reset(new UploadGate(config_.upload_workers));
+  thumb_generator_.reset(
+      new FfmpegThumbnailGenerator(config_.ffmpeg_path));
+  thumb_queue_.reset(new ThumbnailQueue(thumb_generator_.get()));
   http_.reset(new HttpApiServer(repo_.get(), ingest_.get()));
   http_->set_local_media(media_store_.get(), upload_gate_.get());
+  http_->set_thumbnail_queue(thumb_queue_.get());
   ws_.reset(new WsPushServer());
 
   if (!http_->Start(config_.bind_host, config_.http_port, error)) {
@@ -151,6 +157,31 @@ bool ServerApp::Start(std::string* error) {
       ws_->BroadcastUpserted(batch);
     }
   });
+  thumb_queue_->set_completed_handler(
+      [this](const ThumbJob& job, bool ok) {
+        if (!ok || repo_.get() == NULL) {
+          return;
+        }
+        Video video;
+        std::string err;
+        if (!repo_->getById(job.video_id, &video, &err)) {
+          return;
+        }
+        std::ostringstream base;
+        base << "http://" << config_.bind_host << ":" << http_port();
+        video.thumbnail_url =
+            base.str() + "/media/thumbs/" + job.thumb_filename;
+        if (!repo_->upsert(video, &err)) {
+          LogWarn("thumbnail upsert failed: " + err);
+          return;
+        }
+        if (ws_.get() != NULL) {
+          std::vector<Video> batch;
+          batch.push_back(video);
+          ws_->BroadcastUpserted(batch);
+        }
+      });
+  thumb_queue_->start(config_.thumbnail_workers);
 
   // Initial catalog pull so search works immediately after boot.
   ingest_->runOnce();
@@ -184,6 +215,9 @@ void ServerApp::Stop() {
   if (health_.get() != NULL) {
     health_->stop();
   }
+  if (thumb_queue_.get() != NULL) {
+    thumb_queue_->stop();
+  }
   if (http_.get() != NULL) {
     http_->Stop();
   }
@@ -196,6 +230,8 @@ void ServerApp::Stop() {
 
   http_.reset();
   ws_.reset();
+  thumb_queue_.reset();
+  thumb_generator_.reset();
   upload_gate_.reset();
   media_store_.reset();
   health_.reset();

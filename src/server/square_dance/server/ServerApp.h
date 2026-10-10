@@ -21,6 +21,8 @@ class HttpApiServer;
 class WsPushServer;
 class LocalMediaStore;
 class UploadGate;
+class IThumbnailGenerator;
+class ThumbnailQueue;
 
 class ServerApp {
  public:
@@ -61,6 +63,8 @@ class ServerApp {
   std::unique_ptr<UrlHealthService> health_;
   std::unique_ptr<LocalMediaStore> media_store_;
   std::unique_ptr<UploadGate> upload_gate_;
+  std::unique_ptr<IThumbnailGenerator> thumb_generator_;
+  std::unique_ptr<ThumbnailQueue> thumb_queue_;
   std::unique_ptr<HttpApiServer> http_;
   std::unique_ptr<WsPushServer> ws_;
 };
