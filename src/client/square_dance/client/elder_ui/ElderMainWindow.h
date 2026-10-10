@@ -21,6 +21,7 @@ class ConnectionStatusWidget;
 class DownloadService;
 class LibraryPane;
 class UploadController;
+class PlayHistoryStore;
 class PlaybackController;
 class PlayerPane;
 class PlaylistPane;
@@ -60,13 +61,16 @@ class ElderMainWindow : public QMainWindow {
   void onUploadFinished(const Video& video);
   void onVideoUpserted(const Video& video);
   void onVideoRemoved(qint64 id);
+  void onPlaybackProgressForHistory(double position_sec, double duration_sec);
   void SetStatusMessage(const QString& message);
 
  private:
   bool SelectedSearchVideo(Video* out) const;
   Video VideoFromPlaylistItem(const PlaylistItem& item) const;
   QString ResolvePlaylistPath() const;
+  QString ResolveHistoryPath() const;
   void PlayVideo(const Video& video);
+  void RecordHistory(double position_sec, double duration_sec);
 
   ClientConfig config_;
   SearchBar* search_bar_;
@@ -79,6 +83,7 @@ class ElderMainWindow : public QMainWindow {
   PlaylistPane* playlist_pane_;
   LibraryPane* library_pane_;
   UploadController* upload_;
+  PlayHistoryStore* history_store_;
   QWidget* history_placeholder_;
 
   CatalogModel* model_;
@@ -87,7 +92,9 @@ class ElderMainWindow : public QMainWindow {
   PlaybackController* playback_;
   DownloadService* downloads_;
   QString current_query_;
+  Video current_video_;
   bool playing_from_playlist_;
+  qint64 last_history_save_ms_;
 };
 
 }  // namespace client

@@ -12,6 +12,7 @@
 #include "square_dance/client/elder_ui/SearchBar.h"
 #include "square_dance/client/elder_ui/VideoResultList.h"
 #include "square_dance/client/library/LibraryPane.h"
+#include "square_dance/client/history/PlayHistoryStore.h"
 #include "square_dance/client/library/UploadController.h"
 #include "square_dance/client/playback/PlaybackController.h"
 #include "square_dance/client/playback/VideoPlayerWidget.h"
@@ -19,6 +20,7 @@
 #include "square_dance/client/playlist/PlaylistStore.h"
 
 #include <QColor>
+#include <QDateTime>
 #include <QFileDialog>
 #include <QFrame>
 #include <QHBoxLayout>
@@ -50,14 +52,19 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
       playlist_pane_(NULL),
       library_pane_(NULL),
       upload_(NULL),
+      history_store_(NULL),
       history_placeholder_(NULL),
       model_(new CatalogModel(this)),
       catalog_(new CatalogClient(config.http_base_url, this)),
       push_(new PushClient(this)),
       playback_(new PlaybackController(this)),
       downloads_(new DownloadService(config.download_dir, this)),
-      playing_from_playlist_(false) {
+      playing_from_playlist_(false),
+      last_history_save_ms_(0) {
   upload_ = new UploadController(config.http_base_url, 2, this);
+  history_store_ = new PlayHistoryStore(ResolveHistoryPath(), 100);
+  QString hist_err;
+  history_store_->load(&hist_err);
   setWindowTitle(QString::fromUtf8("Square Dance"));
   setWindowIcon(AppIcons::Logo());
   resize(1280, 800);
@@ -198,6 +205,8 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
           &ElderMainWindow::SetStatusMessage);
   connect(playback_, &PlaybackController::playbackProgress, player_pane_,
           &PlayerPane::setPlaybackProgress);
+  connect(playback_, &PlaybackController::playbackProgress, this,
+          &ElderMainWindow::onPlaybackProgressForHistory);
   connect(playback_, &PlaybackController::playbackFinished, this,
           &ElderMainWindow::onPlaybackFinished);
   connect(player_pane_, &PlayerPane::seekRequested, playback_,
@@ -242,6 +251,11 @@ QString ElderMainWindow::ResolvePlaylistPath() const {
          QString::fromUtf8("/playlist.json");
 }
 
+QString ElderMainWindow::ResolveHistoryPath() const {
+  return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) +
+         QString::fromUtf8("/play_history.json");
+}
+
 Video ElderMainWindow::VideoFromPlaylistItem(const PlaylistItem& item) const {
   Video video;
   video.id = item.id;
@@ -253,8 +267,30 @@ Video ElderMainWindow::VideoFromPlaylistItem(const PlaylistItem& item) const {
 }
 
 void ElderMainWindow::PlayVideo(const Video& video) {
+  current_video_ = video;
+  last_history_save_ms_ = 0;
   SetStatusMessage(QString::fromUtf8("正在播放：") + video.title);
   playback_->play(video);
+  RecordHistory(0.0, 0.0);
+}
+
+void ElderMainWindow::RecordHistory(double position_sec, double duration_sec) {
+  if (history_store_ == NULL || current_video_.id == 0) {
+    return;
+  }
+  const qint64 pos_ms = static_cast<qint64>(position_sec * 1000.0);
+  const qint64 dur_ms = static_cast<qint64>(duration_sec * 1000.0);
+  history_store_->recordProgress(current_video_, pos_ms, dur_ms);
+  last_history_save_ms_ = QDateTime::currentMSecsSinceEpoch();
+}
+
+void ElderMainWindow::onPlaybackProgressForHistory(double position_sec,
+                                                   double duration_sec) {
+  const qint64 now = QDateTime::currentMSecsSinceEpoch();
+  if (last_history_save_ms_ != 0 && now - last_history_save_ms_ < 5000) {
+    return;
+  }
+  RecordHistory(position_sec, duration_sec);
 }
 
 bool ElderMainWindow::SelectedSearchVideo(Video* out) const {
@@ -421,6 +457,7 @@ void ElderMainWindow::onStopClicked() {
   playing_from_playlist_ = false;
   playback_->stop();
   player_pane_->resetPlaybackProgress();
+  // Best-effort persist last known progress already saved by progress hook.
 }
 
 void ElderMainWindow::onDownloadClicked() {

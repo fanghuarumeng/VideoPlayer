@@ -717,17 +717,17 @@ Plan index: `tasks/plan.md` Phase G.
 
 **Acceptance criteria:**
 
-- [ ] Partial play + restart restores position_ms for that id
-- [ ] Cap enforced; store GTest green
+- [x] Partial play + restart restores position_ms for that id
+- [x] Cap enforced; store GTest green
 
 **Verification:**
 
-- [ ] `ctest --test-dir build-client -C Release -R play_history --output-on-failure`
+- [x] `ctest --test-dir build-client -C Release -R PlayHistory` — passed (2026-10-10)
 
 **Dependencies:** `playback` progress signals; Checkpoint G3 helpful but not hard  
 **Files likely touched:** `history/PlayHistoryStore.*`, `PlaybackController` wiring, tests  
 **Estimated scope:** M  
-**Status:** Pending
+**Status:** Done (2026-10-10)
 
 ---
 

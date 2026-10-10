@@ -185,6 +185,7 @@ if(BUILD_CLIENT)
     src/client/square_dance/client/playlist/PlaylistPane.cpp
     src/client/square_dance/client/library/LibraryPane.cpp
     src/client/square_dance/client/library/UploadController.cpp
+    src/client/square_dance/client/history/PlayHistoryStore.cpp
     ${SQUARE_DANCE_CLIENT_RESOURCES}
   )
   target_include_directories(square_dance_client_lib PUBLIC
@@ -227,6 +228,7 @@ if(BUILD_CLIENT)
     tests/client/playback/playback_no_download_test.cpp
     tests/client/download/download_service_test.cpp
     tests/client/playlist/playlist_store_test.cpp
+    tests/client/history/play_history_store_test.cpp
   )
   target_link_libraries(SquareDanceClientTests
     PRIVATE
