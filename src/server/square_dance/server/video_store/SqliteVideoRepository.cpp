@@ -41,6 +41,7 @@ Video ReadVideoRow(sqlite3_stmt* stmt) {
   v.consecutive_failures = sqlite3_column_int(stmt, 6);
   const unsigned char* created_at = sqlite3_column_text(stmt, 7);
   const unsigned char* updated_at = sqlite3_column_text(stmt, 8);
+  const unsigned char* thumbnail_url = sqlite3_column_text(stmt, 9);
 
   v.external_id = external_id ? reinterpret_cast<const char*>(external_id) : "";
   v.title = title ? reinterpret_cast<const char*>(title) : "";
@@ -50,7 +51,33 @@ Video ReadVideoRow(sqlite3_stmt* stmt) {
   v.source_type = source_type ? reinterpret_cast<const char*>(source_type) : "";
   v.created_at = created_at ? reinterpret_cast<const char*>(created_at) : "";
   v.updated_at = updated_at ? reinterpret_cast<const char*>(updated_at) : "";
+  v.thumbnail_url =
+      thumbnail_url ? reinterpret_cast<const char*>(thumbnail_url) : "";
   return v;
+}
+
+bool ReadSchemaVersion(sqlite3* db, int* version, std::string* error) {
+  sqlite3_stmt* stmt = NULL;
+  const int prep =
+      sqlite3_prepare_v2(db, "SELECT version FROM schema_version LIMIT 1;", -1,
+                         &stmt, NULL);
+  if (prep != SQLITE_OK) {
+    SetError(error, sqlite3_errmsg(db));
+    return false;
+  }
+  const int rc = sqlite3_step(stmt);
+  if (rc == SQLITE_ROW) {
+    *version = sqlite3_column_int(stmt, 0);
+    sqlite3_finalize(stmt);
+    return true;
+  }
+  sqlite3_finalize(stmt);
+  if (rc == SQLITE_DONE) {
+    *version = 0;
+    return true;
+  }
+  SetError(error, sqlite3_errmsg(db));
+  return false;
 }
 
 }  // namespace
@@ -108,6 +135,7 @@ bool SqliteVideoRepository::EnsureSchema(std::string* error) {
       "  consecutive_failures INTEGER NOT NULL DEFAULT 0,"
       "  created_at TEXT NOT NULL,"
       "  updated_at TEXT NOT NULL,"
+      "  thumbnail_url TEXT NOT NULL DEFAULT '',"
       "  UNIQUE(source_type, external_id)"
       ");";
 
@@ -115,27 +143,39 @@ bool SqliteVideoRepository::EnsureSchema(std::string* error) {
     return false;
   }
 
-  sqlite3_stmt* stmt = NULL;
-  const int prep =
-      sqlite3_prepare_v2(db_, "SELECT COUNT(*) FROM schema_version;", -1, &stmt,
-                         NULL);
-  if (prep != SQLITE_OK) {
-    SetError(error, sqlite3_errmsg(db_));
+  int version = 0;
+  if (!ReadSchemaVersion(db_, &version, error)) {
     return false;
   }
-  int count = 0;
-  if (sqlite3_step(stmt) == SQLITE_ROW) {
-    count = sqlite3_column_int(stmt, 0);
-  }
-  sqlite3_finalize(stmt);
 
-  if (count == 0) {
-    if (!ExecSql(db_, "INSERT INTO schema_version(version) VALUES (1);",
+  if (version == 0) {
+    if (!ExecSql(db_, "INSERT INTO schema_version(version) VALUES (2);",
                  error)) {
       return false;
     }
+    return true;
   }
-  return true;
+
+  if (version == 1) {
+    // Existing v1 DBs lack thumbnail_url (CREATE IF NOT EXISTS was a no-op).
+    if (!ExecSql(db_,
+                 "ALTER TABLE videos ADD COLUMN thumbnail_url TEXT NOT NULL "
+                 "DEFAULT '';",
+                 error)) {
+      return false;
+    }
+    if (!ExecSql(db_, "UPDATE schema_version SET version = 2;", error)) {
+      return false;
+    }
+    return true;
+  }
+
+  if (version >= 2) {
+    return true;
+  }
+
+  SetError(error, "unsupported schema_version");
+  return false;
 }
 
 bool SqliteVideoRepository::upsert(const Video& video, std::string* error) {
@@ -147,14 +187,15 @@ bool SqliteVideoRepository::upsert(const Video& video, std::string* error) {
   const char* sql =
       "INSERT INTO videos("
       "  external_id, title, play_url, download_url, source_type,"
-      "  consecutive_failures, created_at, updated_at"
-      ") VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+      "  consecutive_failures, created_at, updated_at, thumbnail_url"
+      ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
       "ON CONFLICT(source_type, external_id) DO UPDATE SET "
       "  title=excluded.title,"
       "  play_url=excluded.play_url,"
       "  download_url=excluded.download_url,"
       "  consecutive_failures=excluded.consecutive_failures,"
-      "  updated_at=excluded.updated_at;";
+      "  updated_at=excluded.updated_at,"
+      "  thumbnail_url=excluded.thumbnail_url;";
 
   sqlite3_stmt* stmt = NULL;
   if (sqlite3_prepare_v2(db_, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -170,6 +211,7 @@ bool SqliteVideoRepository::upsert(const Video& video, std::string* error) {
   sqlite3_bind_int(stmt, 6, video.consecutive_failures);
   sqlite3_bind_text(stmt, 7, video.created_at.c_str(), -1, SQLITE_TRANSIENT);
   sqlite3_bind_text(stmt, 8, video.updated_at.c_str(), -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 9, video.thumbnail_url.c_str(), -1, SQLITE_TRANSIENT);
 
   const int rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
@@ -190,7 +232,7 @@ std::vector<Video> SqliteVideoRepository::searchByName(const std::string& query,
 
   const char* sql =
       "SELECT id, external_id, title, play_url, download_url, source_type,"
-      "       consecutive_failures, created_at, updated_at "
+      "       consecutive_failures, created_at, updated_at, thumbnail_url "
       "FROM videos "
       "WHERE lower(title) LIKE '%' || lower(?) || '%' "
       "ORDER BY id ASC "
@@ -223,7 +265,7 @@ bool SqliteVideoRepository::getById(std::int64_t id, Video* out,
 
   const char* sql =
       "SELECT id, external_id, title, play_url, download_url, source_type,"
-      "       consecutive_failures, created_at, updated_at "
+      "       consecutive_failures, created_at, updated_at, thumbnail_url "
       "FROM videos WHERE id = ?;";
   sqlite3_stmt* stmt = NULL;
   if (sqlite3_prepare_v2(db_, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -257,7 +299,7 @@ bool SqliteVideoRepository::findBySourceKey(const std::string& source_type,
 
   const char* sql =
       "SELECT id, external_id, title, play_url, download_url, source_type,"
-      "       consecutive_failures, created_at, updated_at "
+      "       consecutive_failures, created_at, updated_at, thumbnail_url "
       "FROM videos WHERE source_type = ? AND external_id = ?;";
   sqlite3_stmt* stmt = NULL;
   if (sqlite3_prepare_v2(db_, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -316,9 +358,9 @@ std::vector<Video> SqliteVideoRepository::listAll(int limit, int offset) {
 
   const char* sql =
       "SELECT id, external_id, title, play_url, download_url, source_type,"
-      "       consecutive_failures, created_at, updated_at "
+      "       consecutive_failures, created_at, updated_at, thumbnail_url "
       "FROM videos "
-      "ORDER BY id ASC "
+      "ORDER BY id DESC "
       "LIMIT ? OFFSET ?;";
   sqlite3_stmt* stmt = NULL;
   if (sqlite3_prepare_v2(db_, sql, -1, &stmt, NULL) != SQLITE_OK) {

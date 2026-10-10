@@ -12,8 +12,9 @@ struct VideoDto {
   std::string title;
   std::string play_url;
   std::string download_url;
-  std::string source_type;  // "archive_org" | "authorized"
+  std::string source_type;  // "archive_org" | "authorized" | "local_upload"
   std::string updated_at;   // ISO-8601 UTC
+  std::string thumbnail_url;  // empty until available
 };
 
 }  // namespace square_dance

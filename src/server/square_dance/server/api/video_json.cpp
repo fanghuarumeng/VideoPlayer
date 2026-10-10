@@ -14,6 +14,7 @@ VideoDto ToVideoDto(const Video& video) {
   dto.download_url = video.download_url;
   dto.source_type = video.source_type;
   dto.updated_at = video.updated_at;
+  dto.thumbnail_url = video.thumbnail_url;
   return dto;
 }
 

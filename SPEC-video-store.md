@@ -37,10 +37,11 @@ struct Video {
   std::string title;
   std::string play_url;
   std::string download_url;
-  std::string source_type;  // "archive_org" | "authorized"
+  std::string source_type;  // "archive_org" | "authorized" | "local_upload"
   int consecutive_failures;
   std::string created_at;   // ISO-8601 UTC string
   std::string updated_at;
+  std::string thumbnail_url;  // schema v2; empty until set
 };
 
 class IVideoRepository {
@@ -54,7 +55,7 @@ class IVideoRepository {
 };
 ```
 
-- Unique `(source_type, external_id)`; empty query → empty vector; `schema_version` table.
+- Unique `(source_type, external_id)`; empty query → empty vector; `schema_version` table (v2 adds `thumbnail_url`; `listAll` is newest-first by `id DESC`).
 
 ## Testing Strategy
 

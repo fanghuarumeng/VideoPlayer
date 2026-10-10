@@ -1,6 +1,8 @@
 #include "square_dance/server/video_store/SqliteVideoRepository.h"
 #include "square_dance/server/video_store/Video.h"
 
+#include "sqlite3.h"
+
 #include <gtest/gtest.h>
 
 #include <cstdio>
@@ -26,6 +28,7 @@ square_dance::server::Video MakeVideo(const std::string& source_type,
   v.consecutive_failures = 0;
   v.created_at = "2026-10-09T00:00:00Z";
   v.updated_at = "2026-10-09T00:00:00Z";
+  v.thumbnail_url = "";
   return v;
 }
 
@@ -107,4 +110,77 @@ TEST_F(SqliteVideoRepositoryTest, GetByIdAndRemoveById) {
   ASSERT_TRUE(repo_.removeById(all[0].id, &error)) << error;
   EXPECT_TRUE(repo_.listAll(10, 0).empty());
   EXPECT_FALSE(repo_.getById(all[0].id, &got, &error));
+}
+
+TEST_F(SqliteVideoRepositoryTest, UpsertPersistsThumbnailUrl) {
+  std::string error;
+  square_dance::server::Video a =
+      MakeVideo("local_upload", "u-1", "Local Clip");
+  a.thumbnail_url = "http://127.0.0.1:8080/media/thumbs/u-1.jpg";
+  ASSERT_TRUE(repo_.upsert(a, &error)) << error;
+
+  const std::vector<square_dance::server::Video> all = repo_.listAll(10, 0);
+  ASSERT_EQ(all.size(), 1u);
+  EXPECT_EQ(all[0].thumbnail_url, a.thumbnail_url);
+
+  square_dance::server::Video got;
+  ASSERT_TRUE(repo_.getById(all[0].id, &got, &error)) << error;
+  EXPECT_EQ(got.thumbnail_url, a.thumbnail_url);
+}
+
+TEST_F(SqliteVideoRepositoryTest, ListAllNewestFirst) {
+  std::string error;
+  ASSERT_TRUE(repo_.upsert(MakeVideo("authorized", "a", "First"), &error))
+      << error;
+  ASSERT_TRUE(repo_.upsert(MakeVideo("authorized", "b", "Second"), &error))
+      << error;
+
+  const std::vector<square_dance::server::Video> all = repo_.listAll(10, 0);
+  ASSERT_EQ(all.size(), 2u);
+  EXPECT_EQ(all[0].external_id, "b");
+  EXPECT_EQ(all[1].external_id, "a");
+}
+
+TEST_F(SqliteVideoRepositoryTest, MigratesV1SchemaAddsThumbnailUrl) {
+  repo_.Close();
+  std::remove(db_path_.c_str());
+
+  sqlite3* raw = NULL;
+  ASSERT_EQ(sqlite3_open(db_path_.c_str(), &raw), SQLITE_OK);
+  const char* v1 =
+      "CREATE TABLE schema_version (version INTEGER NOT NULL);"
+      "INSERT INTO schema_version(version) VALUES (1);"
+      "CREATE TABLE videos ("
+      "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+      "  external_id TEXT NOT NULL,"
+      "  title TEXT NOT NULL,"
+      "  play_url TEXT NOT NULL,"
+      "  download_url TEXT NOT NULL,"
+      "  source_type TEXT NOT NULL,"
+      "  consecutive_failures INTEGER NOT NULL DEFAULT 0,"
+      "  created_at TEXT NOT NULL,"
+      "  updated_at TEXT NOT NULL,"
+      "  UNIQUE(source_type, external_id)"
+      ");"
+      "INSERT INTO videos(external_id,title,play_url,download_url,source_type,"
+      " consecutive_failures,created_at,updated_at) VALUES "
+      "('legacy','Old','https://e/a.mp4','https://e/a.mp4','authorized',0,"
+      "'2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');";
+  char* errmsg = NULL;
+  ASSERT_EQ(sqlite3_exec(raw, v1, NULL, NULL, &errmsg), SQLITE_OK) << errmsg;
+  sqlite3_close(raw);
+
+  std::string error;
+  ASSERT_TRUE(repo_.Open(db_path_, &error)) << error;
+  const std::vector<square_dance::server::Video> all = repo_.listAll(10, 0);
+  ASSERT_EQ(all.size(), 1u);
+  EXPECT_TRUE(all[0].thumbnail_url.empty());
+  EXPECT_EQ(all[0].title, "Old");
+
+  square_dance::server::Video updated = all[0];
+  updated.thumbnail_url = "http://127.0.0.1:8080/media/thumbs/legacy.jpg";
+  ASSERT_TRUE(repo_.upsert(updated, &error)) << error;
+  square_dance::server::Video got;
+  ASSERT_TRUE(repo_.getById(all[0].id, &got, &error)) << error;
+  EXPECT_EQ(got.thumbnail_url, updated.thumbnail_url);
 }

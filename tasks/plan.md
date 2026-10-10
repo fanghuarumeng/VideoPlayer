@@ -78,7 +78,42 @@ Full acceptance/verification detail lives in `tasks/todo.md`.
 ### Phase F — Polish / CI (post-v1)
 - Task 17: Server CI without Qt (`scripts/ci-server.*` + GitHub Actions) — done
 - Task 18: In-process libav playback (`FfmpegPlaybackEngine`) — done; human motion/audio check open
-- Task 19: Remote + verify GitHub Actions — next
+- Task 19: Remote + verify GitHub Actions — next (optional parallel with G)
+
+### Phase G — Personal media library (approved specs)
+Specs: `CAPABILITY-MAP-personal-media-library.md`, `SPEC-local-media.md`, `SPEC-playlist.md`, `SPEC-library-ui.md`, `SPEC-play-history.md`.
+
+**Architecture deltas vs Phase E:**
+- Server **does** store and serve local upload bytes + thumbnails under `/media/*` (exception to “no media proxy” for `local_upload` only).
+- Upload concurrency: `upload_workers` + `503 upload_busy`; thumbs: FIFO queue + `thumbnail_workers`.
+- Playlist + play-history: **client-local JSON only**.
+
+**Dependency graph (G):**
+```
+video-store schema v2 + VideoDto.thumbnail_url
+    │
+    └── local-media (UploadGate → disk/DB → ThumbnailQueue → HTTP/WS + /media)
+            │
+            ├── playlist (local store + pane + auto-next)
+            │       │
+            │       └── library-ui (nav + grid + bounded upload client + batch-add)
+            │
+            └── play-history (local store + resume seek + history pane)
+```
+
+- Task 20: Schema v2 + DTO/`thumbnail_url` + `GET /api/v1/videos` list
+- Task 21: Upload + `UploadGate` + disk store + `/media/videos` + WS upsert (thumb empty OK)
+- Task 22: `ThumbnailQueue` + ffmpeg CLI + thumb URL update + second WS upsert; skip url-health for `local_upload`
+- **Checkpoint G1** — curl upload/list/play URL; burst upload ≤ workers; burst thumbs ≤ workers
+- Task 23: `PlaylistStore` JSON + model tests
+- Task 24: `PlaylistPane` UI + wire play/auto-next/clear
+- **Checkpoint G2** — local playlist survives restart; auto-next works
+- Task 25: Main-window nav (库/列表/历史/搜索) + library grid + list client
+- Task 26: Client upload queue (`upload_workers`-aligned) + multi-select batch-add + `.mxf` filter
+- **Checkpoint G3** — upload from UI; tiles; batch-add; search demoted
+- Task 27: `PlayHistoryStore` + progress recording from playback
+- Task 28: `HistoryPane` + resume seek + clear history
+- **Checkpoint G4** — full personal-media path accepted
 
 ## Parallelization
 
@@ -87,8 +122,10 @@ Full acceptance/verification detail lives in `tasks/todo.md`.
 | Checkpoint A | Task 4 vs early client Task 11 (client blocked on API contract only — DTO already in Task 1) |
 | Checkpoint B | Task 8 and Task 9 |
 | Checkpoint D | Task 14 and Task 15 |
+| Checkpoint G1 | Task 23 playlist store while polishing Task 22 tests |
+| Phase F Task 19 | Parallel with Phase G (no code dependency) |
 
-Must stay sequential: 2→3→5→6→7; 12→13→16.
+Must stay sequential: 2→3→5→6→7; 12→13→16; **20→21→22**; 23→24; 25→26; 27→28. G1 before UI upload (26); G2 before relying on batch-add UX.
 
 ## Risks and Mitigations
 
@@ -99,6 +136,9 @@ Must stay sequential: 2→3→5→6→7; 12→13→16.
 | Archive.org rate limits / sparse 广场舞 | Med | Authorized catalog carries product content; Archive.org proves public ingest |
 | cpp-httplib + websocketpp dual listen threads | Med | Clear thread ownership in Task 10; no shared sock across libs |
 | C++11 + modern header-only libs | Med | Pin versions in FetchContent; forbid C++14/17 features in our code |
+| Large MXF / slow ffmpeg thumbs | Med | Async thumb queue; UI placeholder until WS thumb upsert |
+| Upload 503 under burst | Low | Client local queue + backoff per `SPEC-library-ui` |
+| httplib may buffer body before 503 | Med | Acquire upload slot as early as handler allows; document behavior in Task 21 |
 
 ## Open Questions (non-blocking defaults)
 
@@ -108,4 +148,5 @@ Must stay sequential: 2→3→5→6→7; 12→13→16.
 
 ## Human gate
 
-Do not start implementation until this plan / `tasks/todo.md` is approved (or you explicitly say “start Task N”).
+Phase A–E complete. Phase G specs approved 2026-10-10.  
+Do not start Phase G implementation until this plan / Task 20+ in `tasks/todo.md` is approved (or you explicitly say “start Task N”).

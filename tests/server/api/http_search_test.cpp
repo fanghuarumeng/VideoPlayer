@@ -107,3 +107,21 @@ TEST_F(HttpSearchTest, IngestUnavailableWithoutService) {
   ASSERT_TRUE(res);
   EXPECT_EQ(res->status, 503);
 }
+
+TEST_F(HttpSearchTest, ListVideosNewestFirstIncludesThumbnailUrl) {
+  httplib::Client client("127.0.0.1", server_->bound_port());
+  client.set_connection_timeout(2, 0);
+  client.set_read_timeout(2, 0);
+
+  const httplib::Result res = client.Get("/api/v1/videos?limit=50&offset=0");
+  ASSERT_TRUE(res) << "HTTP request failed";
+  EXPECT_EQ(res->status, 200);
+
+  const nlohmann::json body = nlohmann::json::parse(res->body);
+  ASSERT_TRUE(body.is_array());
+  ASSERT_EQ(body.size(), 2u);
+  EXPECT_EQ(body[0].at("external_id").get<std::string>(), "2");
+  EXPECT_EQ(body[1].at("external_id").get<std::string>(), "1");
+  EXPECT_TRUE(body[0].contains("thumbnail_url"));
+  EXPECT_EQ(body[0].at("thumbnail_url").get<std::string>(), "");
+}

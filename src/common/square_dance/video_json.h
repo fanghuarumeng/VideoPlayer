@@ -17,6 +17,7 @@ inline nlohmann::json videoDtoToJson(const VideoDto& video) {
       {"download_url", video.download_url},
       {"source_type", video.source_type},
       {"updated_at", video.updated_at},
+      {"thumbnail_url", video.thumbnail_url},
   };
 }
 
@@ -64,6 +65,11 @@ inline bool videoDtoFromJson(const nlohmann::json& j,
     out->download_url = j.at("download_url").get<std::string>();
     out->source_type = j.at("source_type").get<std::string>();
     out->updated_at = j.at("updated_at").get<std::string>();
+    if (j.contains("thumbnail_url") && j.at("thumbnail_url").is_string()) {
+      out->thumbnail_url = j.at("thumbnail_url").get<std::string>();
+    } else {
+      out->thumbnail_url.clear();
+    }
   } catch (const std::exception& ex) {
     if (error != NULL) {
       *error = ex.what();

@@ -37,6 +37,7 @@ tests/server/api/
 | Method | Path | Behavior |
 |---|---|---|
 | GET | `/api/v1/videos/search?q=&limit=` | searchByName |
+| GET | `/api/v1/videos?limit=&offset=` | listAll newest-first (default limit 50, max 200) |
 | GET | `/api/v1/videos/{id}` | detail or 404 |
 | POST | `/api/v1/ingest/run` | runOnce |
 
@@ -50,7 +51,8 @@ JSON fields (Qt-free, shared with client):
   "play_url": "https://...",
   "download_url": "https://...",
   "source_type": "archive_org",
-  "updated_at": "2026-10-09T08:00:00Z"
+  "updated_at": "2026-10-09T08:00:00Z",
+  "thumbnail_url": ""
 }
 ```
 

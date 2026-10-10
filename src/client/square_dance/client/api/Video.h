@@ -18,6 +18,7 @@ struct Video {
   QString download_url;
   QString source_type;
   QString updated_at;
+  QString thumbnail_url;
 };
 
 }  // namespace client

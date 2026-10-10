@@ -64,6 +64,37 @@ void HttpApiServer::RegisterRoutes() {
                             "application/json; charset=utf-8");
           });
 
+  svr.Get("/api/v1/videos",
+          [this](const httplib::Request& req, httplib::Response& res) {
+            if (repo_ == NULL) {
+              res.status = 500;
+              res.set_content("{\"error\":\"repository unavailable\"}",
+                              "application/json");
+              return;
+            }
+            int limit = 50;
+            int offset = 0;
+            if (req.has_param("limit")) {
+              limit = std::atoi(req.get_param_value("limit").c_str());
+            }
+            if (req.has_param("offset")) {
+              offset = std::atoi(req.get_param_value("offset").c_str());
+            }
+            if (limit <= 0) {
+              limit = 50;
+            }
+            if (limit > 200) {
+              limit = 200;
+            }
+            if (offset < 0) {
+              offset = 0;
+            }
+            const std::vector<Video> videos = repo_->listAll(limit, offset);
+            res.status = 200;
+            res.set_content(VideoListToApiJson(videos).dump(),
+                            "application/json; charset=utf-8");
+          });
+
   svr.Get(R"(/api/v1/videos/(\d+))",
           [this](const httplib::Request& req, httplib::Response& res) {
             if (repo_ == NULL) {

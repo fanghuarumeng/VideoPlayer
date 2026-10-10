@@ -29,6 +29,7 @@ Video FromDto(const VideoDto& dto) {
   v.download_url = FromUtf8(dto.download_url);
   v.source_type = FromUtf8(dto.source_type);
   v.updated_at = FromUtf8(dto.updated_at);
+  v.thumbnail_url = FromUtf8(dto.thumbnail_url);
   return v;
 }
 
@@ -41,6 +42,7 @@ VideoDto ToDto(const Video& v) {
   dto.download_url = ToUtf8(v.download_url);
   dto.source_type = ToUtf8(v.source_type);
   dto.updated_at = ToUtf8(v.updated_at);
+  dto.thumbnail_url = ToUtf8(v.thumbnail_url);
   return dto;
 }
 

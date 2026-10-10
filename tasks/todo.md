@@ -523,3 +523,238 @@ Track follow-ups after Checkpoint E. Pick slices as needed.
 
 ---
 
+## Phase G — Personal media library
+
+Specs: `CAPABILITY-MAP-personal-media-library.md`, `SPEC-local-media.md`, `SPEC-playlist.md`, `SPEC-library-ui.md`, `SPEC-play-history.md`.  
+Plan index: `tasks/plan.md` Phase G.
+
+---
+
+## Task 20: Schema v2 + list API
+
+**Description:** Add `thumbnail_url` to `Video` / `VideoDto` / JSON; migrate SQLite `schema_version` 1→2; expose `GET /api/v1/videos?limit=&offset=` newest-first.
+
+**Acceptance criteria:**
+
+- [x] Existing DBs migrate; new installs create v2 schema
+- [x] List returns all source types; includes `thumbnail_url` (may be empty)
+- [x] Search/get JSON include `thumbnail_url`
+- [x] Existing server tests still green
+
+**Verification:**
+
+- [x] `ctest --test-dir build-server -C Release` — 34/34 passed (2026-10-10)
+- [x] List covered by `HttpSearchTest.ListVideosNewestFirstIncludesThumbnailUrl`
+- [ ] Manual: `curl "http://127.0.0.1:8080/api/v1/videos?limit=10"` (optional smoke)
+
+**Dependencies:** Checkpoint E (existing store/API)  
+**Files likely touched:** `Video.h`, `VideoDto.h`, `SqliteVideoRepository.*`, `video_json.*`, `HttpApiServer.*`, tests  
+**Estimated scope:** M  
+**Status:** Done (2026-10-10)
+
+---
+
+## Task 21: Upload + UploadGate + media file serve
+
+**Description:** Implement `LocalMediaStore` + `UploadGate` (`upload_workers`, default 2); `POST /api/v1/videos/upload` for allow-listed extensions including `.mxf`; persist under `media_root`; serve `GET /media/videos/{name}`; WS upsert on insert; config `media_root` / `upload_workers`. Thumb may stay empty.
+
+**Acceptance criteria:**
+
+- [ ] Successful upload → `201`, `source_type=local_upload`, playable `play_url`
+- [ ] Concurrent uploads ≤ `upload_workers`; excess → `503 upload_busy`
+- [ ] Reject disallowed extensions with `400`
+- [ ] url-health path not required yet for local (skip wired in Task 22 OK if easier here)
+
+**Verification:**
+
+- [ ] Upload gate unit/HTTP test for 503 under cap=1
+- [ ] Manual curl multipart upload + GET media bytes
+- [ ] Server build green
+
+**Dependencies:** Task 20  
+**Files likely touched:** `local_media/*`, `ServerConfig.*`, `HttpApiServer.*`, `ServerApp.*`, `config/server.json.example`, tests  
+**Estimated scope:** L  
+**Status:** Pending
+
+---
+
+## Task 22: ThumbnailQueue + ffmpeg + url-health skip
+
+**Description:** FIFO `ThumbnailQueue` with `thumbnail_workers` (default 1); async ffmpeg CLI thumb; update `thumbnail_url` + second WS upsert; serve `/media/thumbs/*`; skip url-health probes/deletes for `local_upload`.
+
+**Acceptance criteria:**
+
+- [ ] Peak concurrent ffmpeg invocations ≤ `thumbnail_workers` under burst enqueue
+- [ ] Upload handler never runs ffmpeg inline
+- [ ] Thumb success → DB + WS; failure leaves empty thumb without failing prior upload
+- [ ] `local_upload` not removed by url-health unreachable logic
+
+**Verification:**
+
+- [ ] `thumbnail_queue_test` with fake generator / concurrency assert
+- [ ] Manual: upload → empty thumb → later thumb URL 200 (ffmpeg present)
+- [ ] **Checkpoint G1** manual curl checklist
+
+**Dependencies:** Task 21  
+**Files likely touched:** `ThumbnailQueue.*`, `ThumbnailGenerator.*`, `UrlHealthService.*`, tests  
+**Estimated scope:** L  
+**Status:** Pending
+
+---
+
+## Checkpoint G1 — local-media server path
+
+- [ ] Upload/list/media/thumb (when ffmpeg OK) work via curl
+- [ ] Upload concurrency and thumb concurrency caps verified by tests
+- [ ] Server CI/local server tests green
+
+---
+
+## Task 23: PlaylistStore (client local)
+
+**Description:** JSON playlist persistence: append (dedupe by id), clear, current_index, load/save under AppData or config path.
+
+**Acceptance criteria:**
+
+- [ ] Round-trip persists items + index
+- [ ] Dedupe by id; clear empties file
+- [ ] GTest on temp path green
+
+**Verification:**
+
+- [ ] `ctest --test-dir build-client -C Release -R playlist --output-on-failure`
+
+**Dependencies:** Checkpoint G1 (metadata URLs useful but store can start after Task 20 DTO)  
+**Files likely touched:** `src/client/.../playlist/PlaylistStore.*`, tests, optional `client.json.example`  
+**Estimated scope:** M  
+**Status:** Pending
+
+---
+
+## Task 24: PlaylistPane + auto-next
+
+**Description:** Scrollable playlist UI with thumbs/placeholder, clear (confirm), play selection / double-click, auto-play next on natural end; wire into main window when nav exists (or temporary host until Task 25).
+
+**Acceptance criteria:**
+
+- [ ] Long list scrolls; clear confirm wipes store
+- [ ] Natural end advances to next item when present
+- [ ] Restart restores queue
+
+**Verification:**
+
+- [ ] Manual with ≥2 short clips
+- [ ] Client build green
+
+**Dependencies:** Task 23, existing `playback`  
+**Files likely touched:** `PlaylistPane.*`, `PlaylistModel.*`, `ElderMainWindow.*` or shell, `PlaybackController` finished signal if missing  
+**Estimated scope:** M  
+**Status:** Pending
+
+---
+
+## Checkpoint G2 — playlist
+
+- [ ] Persist + clear + auto-next accepted manually
+
+---
+
+## Task 25: Library nav + tiled grid
+
+**Description:** Main chrome sections 视频库 / 播放列表 / 历史 / 搜索; library default; tiled grid from `GET /api/v1/videos`; placeholder thumbs; scrollbar; WS upsert updates tiles.
+
+**Acceptance criteria:**
+
+- [ ] Landing on 视频库; search demoted to its section
+- [ ] Grid shows server videos; scrolls when many
+- [ ] Thumb placeholder until `thumbnail_url` filled
+
+**Verification:**
+
+- [ ] Manual against running server with some rows
+- [ ] Client build green
+
+**Dependencies:** Task 20 (list API); Task 24 optional for playlist tab hosting  
+**Files likely touched:** `library/*`, `ElderMainWindow.*`, `CatalogClient` list method  
+**Estimated scope:** L  
+**Status:** Pending
+
+---
+
+## Task 26: Client upload queue + batch-add
+
+**Description:** `UploadController` with local queue and max in-flight (default 2), `503` backoff retry, multi-file picker including `.mxf`; multi-select + 加入播放列表 appends via `PlaylistStore`.
+
+**Acceptance criteria:**
+
+- [ ] Multi-upload respects client in-flight cap; retries busy
+- [ ] Batch-add appends/dedupes into playlist UI
+- [ ] `.mxf` allowed in dialog / client validation aligned with server
+
+**Verification:**
+
+- [ ] Manual multi-file upload + batch-add
+- [ ] **Checkpoint G3**
+
+**Dependencies:** Task 21–22, Task 24–25  
+**Files likely touched:** `UploadController.*`, `LibraryPane.*`, API upload helper  
+**Estimated scope:** M  
+**Status:** Pending
+
+---
+
+## Checkpoint G3 — library UI
+
+- [ ] Upload from UI appears in grid (thumb may lag)
+- [ ] Batch-add → playlist; search still works secondary
+
+---
+
+## Task 27: PlayHistoryStore + progress hookup
+
+**Description:** Local JSON history; record on play/progress/pause/stop/quit; cap 100; debounce disk writes.
+
+**Acceptance criteria:**
+
+- [ ] Partial play + restart restores position_ms for that id
+- [ ] Cap enforced; store GTest green
+
+**Verification:**
+
+- [ ] `ctest --test-dir build-client -C Release -R play_history --output-on-failure`
+
+**Dependencies:** `playback` progress signals; Checkpoint G3 helpful but not hard  
+**Files likely touched:** `history/PlayHistoryStore.*`, `PlaybackController` wiring, tests  
+**Estimated scope:** M  
+**Status:** Pending
+
+---
+
+## Task 28: HistoryPane + resume
+
+**Description:** History section UI (thumb/title/time); activate → play + seek; near-end → start 0; clear history with confirm.
+
+**Acceptance criteria:**
+
+- [ ] Resume within ~2s of saved position
+- [ ] Clear confirm empties history
+- [ ] List scrolls
+
+**Verification:**
+
+- [ ] Manual resume checklist
+- [ ] **Checkpoint G4**
+
+**Dependencies:** Task 27, Task 25 nav host  
+**Files likely touched:** `HistoryPane.*`, shell wiring  
+**Estimated scope:** M  
+**Status:** Pending
+
+---
+
+## Checkpoint G4 — personal media complete
+
+- [ ] End-to-end: upload → library → playlist → play → history resume
+- [ ] Concurrency caps (upload + thumb) still respected under burst
+- [ ] Specs' success criteria checked or explicitly deferred
+

@@ -16,6 +16,7 @@ struct Video {
   int consecutive_failures;
   std::string created_at;
   std::string updated_at;
+  std::string thumbnail_url;
 };
 
 }  // namespace server
