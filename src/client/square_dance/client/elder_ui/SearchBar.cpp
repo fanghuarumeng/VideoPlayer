@@ -1,7 +1,9 @@
 #include "square_dance/client/elder_ui/SearchBar.h"
 
-#include "square_dance/client/elder_ui/ElderStyle.h"
+#include "square_dance/client/elder_ui/AppIcons.h"
+#include "square_dance/client/elder_ui/AppTheme.h"
 
+#include <QAction>
 #include <QHBoxLayout>
 #include <QLineEdit>
 #include <QPushButton>
@@ -11,19 +13,25 @@ namespace client {
 
 SearchBar::SearchBar(QWidget* parent) : QWidget(parent) {
   edit_ = new QLineEdit(this);
-  edit_->setFont(ElderStyle::BodyFont());
-  edit_->setPlaceholderText(QString::fromUtf8("输入舞曲名称，例如：广场舞"));
-  edit_->setStyleSheet(ElderStyle::SearchEditStyle());
+  edit_->setFont(AppTheme::UiFont());
+  edit_->setPlaceholderText(QString::fromUtf8("搜索视频标题…"));
+  edit_->setStyleSheet(AppTheme::SearchFieldStyle());
+  edit_->setClearButtonEnabled(true);
+
+  QAction* search_action = edit_->addAction(AppIcons::Search(), QLineEdit::LeadingPosition);
 
   button_ = new QPushButton(QString::fromUtf8("搜索"), this);
-  button_->setFont(ElderStyle::ButtonFont());
-  button_->setStyleSheet(ElderStyle::PrimaryButtonStyle());
-  button_->setMinimumWidth(128);
+  button_->setFont(AppTheme::UiFont());
+  button_->setIcon(AppIcons::Search());
+  button_->setIconSize(QSize(18, 18));
+  button_->setStyleSheet(AppTheme::PrimaryButtonStyle());
+  button_->setMinimumWidth(88);
   button_->setCursor(Qt::PointingHandCursor);
+  Q_UNUSED(search_action);
 
   QHBoxLayout* layout = new QHBoxLayout(this);
   layout->setContentsMargins(0, 0, 0, 0);
-  layout->setSpacing(12);
+  layout->setSpacing(8);
   layout->addWidget(edit_, 1);
   layout->addWidget(button_);
 

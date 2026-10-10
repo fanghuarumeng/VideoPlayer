@@ -19,7 +19,10 @@ PlaybackController::PlaybackController(QObject* parent)
       audio_device_(NULL),
       paused_(false),
       playing_(false),
-      has_presented_frame_(false) {
+      has_presented_frame_(false),
+      scrubbing_(false),
+      duration_sec_(0.0),
+      position_sec_(0.0) {
   connect(engine_, &FfmpegPlaybackEngine::videoFrameReady, this,
           &PlaybackController::onVideoFrame, Qt::QueuedConnection);
   connect(engine_, &FfmpegPlaybackEngine::audioSamplesReady, this,
@@ -28,6 +31,12 @@ PlaybackController::PlaybackController(QObject* parent)
           &PlaybackController::onEngineFailed, Qt::QueuedConnection);
   connect(engine_, &FfmpegPlaybackEngine::playbackEnded, this,
           &PlaybackController::onEngineEnded, Qt::QueuedConnection);
+  connect(engine_, &FfmpegPlaybackEngine::durationReady, this,
+          &PlaybackController::onDurationReady, Qt::QueuedConnection);
+  connect(engine_, &FfmpegPlaybackEngine::positionChanged, this,
+          &PlaybackController::onPositionChanged, Qt::QueuedConnection);
+  connect(engine_, &FfmpegPlaybackEngine::seekCompleted, this,
+          &PlaybackController::onSeekCompleted, Qt::QueuedConnection);
 }
 
 PlaybackController::~PlaybackController() {
@@ -83,7 +92,6 @@ bool PlaybackController::EnsureAudioOutput(QString* error) {
   format.setSampleType(QAudioFormat::SignedInt);
 
   audio_out_ = new QAudioOutput(format, this);
-  // ~0.5s buffer; decode is realtime-paced so this stays drained.
   audio_out_->setBufferSize(FfmpegPlaybackEngine::kAudioSampleRate *
                             FfmpegPlaybackEngine::kAudioChannels *
                             FfmpegPlaybackEngine::kAudioBytesPerSample / 2);
@@ -96,6 +104,19 @@ bool PlaybackController::EnsureAudioOutput(QString* error) {
     return false;
   }
   return true;
+}
+
+void PlaybackController::EmitProgress() {
+  emit playbackProgress(position_sec_, duration_sec_);
+}
+
+void PlaybackController::setScrubbing(bool scrubbing) { scrubbing_ = scrubbing; }
+
+void PlaybackController::seekTo(double position_sec) {
+  if (!playing_) {
+    return;
+  }
+  engine_->seekTo(position_sec);
 }
 
 void PlaybackController::play(const Video& video) {
@@ -127,6 +148,9 @@ void PlaybackController::play(const Video& video) {
   paused_ = false;
   playing_ = true;
   has_presented_frame_ = false;
+  duration_sec_ = 0.0;
+  position_sec_ = 0.0;
+  EmitProgress();
 
   if (player_widget_ != NULL) {
     player_widget_->setLoadingCoverVisible(true);
@@ -168,12 +192,14 @@ void PlaybackController::stop() {
   playing_ = false;
   paused_ = false;
   has_presented_frame_ = false;
+  duration_sec_ = 0.0;
+  position_sec_ = 0.0;
+  EmitProgress();
   if (player_widget_ != NULL) {
     player_widget_->setLoadingCoverVisible(false);
     player_widget_->showHintPage();
   }
-  UpdateHint(QString::fromUtf8(
-      "选择左侧视频后点击「播放」\n画面将在此区域内播放"));
+  UpdateHint(QString::fromUtf8("双击列表条目，或点击播放"));
   emit statusMessage(QString::fromUtf8("已停止"));
 }
 
@@ -182,7 +208,6 @@ void PlaybackController::onVideoFrame(const QImage& frame, double /*pts_sec*/) {
     return;
   }
   if (player_widget_ != NULL) {
-    // Decode thread is realtime-paced; paint as soon as the frame arrives.
     player_widget_->setFrame(frame);
     if (!has_presented_frame_) {
       has_presented_frame_ = true;
@@ -199,6 +224,32 @@ void PlaybackController::onAudioSamples(const QByteArray& pcm,
   audio_device_->write(pcm);
 }
 
+void PlaybackController::onDurationReady(double duration_sec) {
+  duration_sec_ = duration_sec;
+  EmitProgress();
+}
+
+void PlaybackController::onPositionChanged(double position_sec) {
+  if (scrubbing_) {
+    return;
+  }
+  position_sec_ = position_sec;
+  EmitProgress();
+}
+
+void PlaybackController::onSeekCompleted(double position_sec) {
+  position_sec_ = position_sec;
+  EmitProgress();
+  TearDownAudio();
+  if (playing_) {
+    QString error;
+    EnsureAudioOutput(&error);
+    if (paused_ && audio_out_ != NULL) {
+      audio_out_->suspend();
+    }
+  }
+}
+
 void PlaybackController::onEngineFailed(const QString& message) {
   playing_ = false;
   TearDownAudio();
@@ -212,6 +263,10 @@ void PlaybackController::onEngineFailed(const QString& message) {
 
 void PlaybackController::onEngineEnded() {
   playing_ = false;
+  if (duration_sec_ > 0.0) {
+    position_sec_ = duration_sec_;
+    EmitProgress();
+  }
   TearDownAudio();
   if (player_widget_ != NULL) {
     player_widget_->setLoadingCoverVisible(false);

@@ -24,6 +24,7 @@ class FfmpegPlaybackEngine : public QThread {
   void startPlayback(const QString& url);
   void requestStop();
   void setPaused(bool paused);
+  void seekTo(double position_sec);
   bool ShouldAbort() const;
 
   static const int kAudioSampleRate = 44100;
@@ -35,6 +36,9 @@ class FfmpegPlaybackEngine : public QThread {
   void audioSamplesReady(const QByteArray& pcm, double pts_sec);
   void playbackFailed(const QString& message);
   void playbackEnded();
+  void durationReady(double duration_sec);
+  void positionChanged(double position_sec);
+  void seekCompleted(double position_sec);
 
  protected:
   void run();
@@ -49,6 +53,9 @@ class FfmpegPlaybackEngine : public QThread {
   void DecodeLoop();
   // Sleep so media PTS does not run ahead of wall clock (keeps A/V realtime).
   void PaceToPts(double pts_sec);
+  double ComputeDurationSec() const;
+  bool PerformSeek(double target_sec);
+  void MaybeEmitPosition(double pts_sec);
 
   QMutex mutex_;
   QWaitCondition pause_wait_;
@@ -62,6 +69,10 @@ class FfmpegPlaybackEngine : public QThread {
   bool pause_wall_mark_valid_;
   qint64 pause_wall_mark_ms_;
   QElapsedTimer wall_timer_;
+  double duration_sec_;
+  double last_reported_position_sec_;
+  bool pending_seek_;
+  double pending_seek_sec_;
 
   // Opaque FFmpeg pointers kept as void* in header to avoid pulling C API into MOC.
   void* format_ctx_;

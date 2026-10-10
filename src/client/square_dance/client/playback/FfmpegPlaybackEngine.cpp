@@ -54,6 +54,10 @@ FfmpegPlaybackEngine::FfmpegPlaybackEngine(QObject* parent)
       pause_accumulated_ms_(0),
       pause_wall_mark_valid_(false),
       pause_wall_mark_ms_(0),
+      duration_sec_(0.0),
+      last_reported_position_sec_(-1.0),
+      pending_seek_(false),
+      pending_seek_sec_(0.0),
       format_ctx_(NULL),
       video_codec_ctx_(NULL),
       audio_codec_ctx_(NULL),
@@ -84,6 +88,9 @@ void FfmpegPlaybackEngine::startPlayback(const QString& url) {
     pause_accumulated_ms_ = 0;
     pause_wall_mark_valid_ = false;
     pause_wall_mark_ms_ = 0;
+    pending_seek_ = false;
+    duration_sec_ = 0.0;
+    last_reported_position_sec_ = -1.0;
   }
   start();
 }
@@ -112,6 +119,77 @@ void FfmpegPlaybackEngine::setPaused(bool paused) {
 
 bool FfmpegPlaybackEngine::ShouldAbort() const {
   return stop_requested_ || isInterruptionRequested();
+}
+
+void FfmpegPlaybackEngine::seekTo(double position_sec) {
+  QMutexLocker lock(&mutex_);
+  if (duration_sec_ > 0.0) {
+    pending_seek_sec_ = qBound(0.0, position_sec, duration_sec_);
+  } else {
+    pending_seek_sec_ = qMax(0.0, position_sec);
+  }
+  pending_seek_ = true;
+  pause_wait_.wakeAll();
+}
+
+double FfmpegPlaybackEngine::ComputeDurationSec() const {
+  AVFormatContext* fmt = static_cast<AVFormatContext*>(format_ctx_);
+  if (fmt == NULL) {
+    return 0.0;
+  }
+  if (fmt->duration != AV_NOPTS_VALUE && fmt->duration > 0) {
+    return static_cast<double>(fmt->duration) / AV_TIME_BASE;
+  }
+  double max_stream = 0.0;
+  for (unsigned i = 0; i < fmt->nb_streams; ++i) {
+    AVStream* st = fmt->streams[i];
+    if (st->duration > 0 && st->time_base.den > 0) {
+      const double d = st->duration * av_q2d(st->time_base);
+      if (d > max_stream) {
+        max_stream = d;
+      }
+    }
+  }
+  return max_stream;
+}
+
+bool FfmpegPlaybackEngine::PerformSeek(double target_sec) {
+  AVFormatContext* fmt = static_cast<AVFormatContext*>(format_ctx_);
+  if (fmt == NULL) {
+    return false;
+  }
+  const int64_t ts = static_cast<int64_t>(target_sec * AV_TIME_BASE);
+  if (av_seek_frame(fmt, -1, ts, AVSEEK_FLAG_BACKWARD) < 0) {
+    return false;
+  }
+  if (video_codec_ctx_ != NULL) {
+    avcodec_flush_buffers(static_cast<AVCodecContext*>(video_codec_ctx_));
+  }
+  if (audio_codec_ctx_ != NULL) {
+    avcodec_flush_buffers(static_cast<AVCodecContext*>(audio_codec_ctx_));
+  }
+  clock_started_ = false;
+  pts_origin_sec_ = target_sec;
+  pause_accumulated_ms_ = 0;
+  pause_wall_mark_valid_ = false;
+  wall_timer_.restart();
+  last_reported_position_sec_ = target_sec - 1.0;
+  return true;
+}
+
+void FfmpegPlaybackEngine::MaybeEmitPosition(double pts_sec) {
+  double pos = pts_sec;
+  if (duration_sec_ > 0.0) {
+    pos = qBound(0.0, pos, duration_sec_);
+  } else if (pos < 0.0) {
+    pos = 0.0;
+  }
+  if (last_reported_position_sec_ < 0.0 ||
+      pos - last_reported_position_sec_ >= 0.2 ||
+      (duration_sec_ > 0.0 && duration_sec_ - pos < 0.05)) {
+    last_reported_position_sec_ = pos;
+    emit positionChanged(pos);
+  }
 }
 
 bool FfmpegPlaybackEngine::OpenInput(const QString& url, QString* error) {
@@ -332,6 +410,12 @@ void FfmpegPlaybackEngine::run() {
     return;
   }
 
+  duration_sec_ = ComputeDurationSec();
+  last_reported_position_sec_ = -1.0;
+  pending_seek_ = false;
+  emit durationReady(duration_sec_);
+  emit positionChanged(0.0);
+
   DecodeLoop();
   CloseInput();
   if (!isInterruptionRequested()) {
@@ -407,6 +491,16 @@ void FfmpegPlaybackEngine::DecodeLoop() {
       }
       if (stop_requested_) {
         break;
+      }
+      if (pending_seek_) {
+        const double target = pending_seek_sec_;
+        pending_seek_ = false;
+        lock.unlock();
+        if (PerformSeek(target)) {
+          emit seekCompleted(target);
+          MaybeEmitPosition(target);
+        }
+        continue;
       }
     }
 
@@ -488,6 +582,7 @@ void FfmpegPlaybackEngine::DecodeLoop() {
           }
           PaceToPts(pts);
           if (!ShouldAbort()) {
+            MaybeEmitPosition(pts);
             emit audioSamplesReady(pcm, pts);
           }
         }

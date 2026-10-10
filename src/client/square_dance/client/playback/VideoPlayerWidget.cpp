@@ -22,17 +22,16 @@ VideoPlayerWidget::VideoPlayerWidget(QWidget* parent)
   hint_->setAlignment(Qt::AlignCenter);
   hint_->setWordWrap(true);
   hint_->setStyleSheet(
-      QString::fromUtf8("QLabel { color: #d7e6dd; background: transparent; "
-                        "font-size: 16pt; padding: 24px; }"));
-  setHintText(QString::fromUtf8(
-      "选择左侧视频后点击「播放」\n画面将在此区域内播放"));
+      QString::fromUtf8("QLabel { color: #94a3b8; background: transparent; "
+                        "font-size: 11pt; padding: 24px; }"));
+  setHintText(QString::fromUtf8("双击列表条目，或点击播放"));
 
   loading_cover_->setAlignment(Qt::AlignCenter);
   loading_cover_->setWordWrap(true);
   loading_cover_->setStyleSheet(
-      QString::fromUtf8("QLabel { color: #d7e6dd; background: #000000; "
-                        "font-size: 16pt; }"));
-  loading_cover_->setText(QString::fromUtf8("正在打开…"));
+      QString::fromUtf8("QLabel { color: #94a3b8; background: #0b0f14; "
+                        "font-size: 11pt; }"));
+  loading_cover_->setText(QString::fromUtf8("加载中…"));
   loading_cover_->hide();
 }
 
