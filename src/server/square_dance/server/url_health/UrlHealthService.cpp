@@ -87,6 +87,9 @@ void UrlHealthService::runOnce() {
 
   for (std::size_t i = 0; i < videos.size(); ++i) {
     Video video = videos[i];
+    if (video.source_type == "local_upload") {
+      continue;
+    }
     std::string probe_error;
     const bool ok = ProbeVideo(video, &probe_error);
     if (ok) {
