@@ -227,6 +227,7 @@ if(BUILD_CLIENT)
     tests/client/api/push_model_test.cpp
     tests/client/api/push_client_test.cpp
     tests/client/playback/playback_no_download_test.cpp
+    tests/client/playback/playback_rapid_replay_test.cpp
     tests/client/download/download_service_test.cpp
     tests/client/playlist/playlist_store_test.cpp
     tests/client/history/play_history_store_test.cpp

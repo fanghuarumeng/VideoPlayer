@@ -2,10 +2,14 @@
 
 #include "square_dance/client/api/Video.h"
 
+#include <QHash>
 #include <QWidget>
 #include <QVector>
 
 class QListWidget;
+class QListWidgetItem;
+class QNetworkAccessManager;
+class QNetworkReply;
 class QPushButton;
 class QLabel;
 
@@ -33,10 +37,17 @@ class LibraryPane : public QWidget {
  private slots:
   void onAddClicked();
   void onItemDoubleClicked();
+  void onThumbFinished();
 
  private:
   void RebuildList();
+  void RequestThumbnails();
+  void RequestOneThumbnail(const Video& video);
+  void CancelAllThumbReplies();
+  void CancelThumbRepliesForId(qint64 id);
   QIcon PlaceholderIcon() const;
+  QListWidgetItem* FindItemById(qint64 id) const;
+  QListWidgetItem* MakeItem(const Video& video) const;
 
   QListWidget* list_;
   QPushButton* refresh_btn_;
@@ -44,6 +55,8 @@ class LibraryPane : public QWidget {
   QPushButton* add_btn_;
   QLabel* empty_label_;
   QVector<Video> videos_;
+  QNetworkAccessManager* nam_;
+  QHash<QNetworkReply*, qint64> thumb_replies_;
 };
 
 }  // namespace client

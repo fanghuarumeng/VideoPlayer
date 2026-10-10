@@ -123,7 +123,6 @@ void UploadController::onReplyFinished() {
   if (reply == NULL) {
     return;
   }
-  reply->deleteLater();
   if (in_flight_ > 0) {
     --in_flight_;
   }
@@ -132,7 +131,9 @@ void UploadController::onReplyFinished() {
   const int attempts = reply->property("upload_attempts").toInt();
   const int status =
       reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+  const QNetworkReply::NetworkError net_err = reply->error();
   const QByteArray body = reply->readAll();
+  reply->deleteLater();
 
   if (status == 503) {
     Job job;
@@ -146,8 +147,7 @@ void UploadController::onReplyFinished() {
     return;
   }
 
-  if (reply->error() != QNetworkReply::NoError || status < 200 ||
-      status >= 300) {
+  if (net_err != QNetworkReply::NoError || status < 200 || status >= 300) {
     emit uploadFailed(path, QString::fromUtf8("HTTP ") +
                                 QString::number(status) +
                                 QString::fromUtf8(" ") +

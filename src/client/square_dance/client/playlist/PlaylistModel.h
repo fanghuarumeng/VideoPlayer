@@ -3,6 +3,12 @@
 #include "square_dance/client/playlist/PlaylistStore.h"
 
 #include <QAbstractListModel>
+#include <QHash>
+#include <QIcon>
+#include <QPixmap>
+
+class QNetworkAccessManager;
+class QNetworkReply;
 
 namespace square_dance {
 namespace client {
@@ -21,7 +27,8 @@ class PlaylistModel : public QAbstractListModel {
   explicit PlaylistModel(PlaylistStore* store, QObject* parent = 0);
 
   virtual int rowCount(const QModelIndex& parent = QModelIndex()) const;
-  virtual QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
+  virtual QVariant data(const QModelIndex& index,
+                        int role = Qt::DisplayRole) const;
   virtual QHash<int, QByteArray> roleNames() const;
 
   PlaylistStore* store() const;
@@ -31,8 +38,17 @@ class PlaylistModel : public QAbstractListModel {
  public slots:
   void refresh();
 
+ private slots:
+  void onThumbFinished();
+
  private:
+  void RequestThumbnails();
+  int RowForId(qint64 id) const;
+
   PlaylistStore* store_;
+  QNetworkAccessManager* nam_;
+  QHash<qint64, QIcon> icons_;
+  QHash<QNetworkReply*, qint64> thumb_replies_;
 };
 
 }  // namespace client

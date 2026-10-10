@@ -22,7 +22,8 @@ PlaybackController::PlaybackController(QObject* parent)
       has_presented_frame_(false),
       scrubbing_(false),
       duration_sec_(0.0),
-      position_sec_(0.0) {
+      position_sec_(0.0),
+      active_job_id_(0) {
   connect(engine_, &FfmpegPlaybackEngine::videoFrameReady, this,
           &PlaybackController::onVideoFrame, Qt::QueuedConnection);
   connect(engine_, &FfmpegPlaybackEngine::audioSamplesReady, this,
@@ -48,6 +49,10 @@ void PlaybackController::setPlayerWidget(VideoPlayerWidget* widget) {
   player_widget_ = widget;
 }
 
+bool PlaybackController::IsActiveJob(quint64 job_id) const {
+  return job_id != 0 && job_id == active_job_id_;
+}
+
 QUrl PlaybackController::ResolvePlayUrl(const QString& url_text) const {
   const QUrl url(url_text);
   if (url.isLocalFile()) {
@@ -71,7 +76,7 @@ void PlaybackController::UpdateHint(const QString& text) {
 void PlaybackController::TearDownAudio() {
   if (audio_out_ != NULL) {
     audio_out_->stop();
-    audio_out_->deleteLater();
+    delete audio_out_;
     audio_out_ = NULL;
     audio_device_ = NULL;
   }
@@ -113,7 +118,7 @@ void PlaybackController::EmitProgress() {
 void PlaybackController::setScrubbing(bool scrubbing) { scrubbing_ = scrubbing; }
 
 void PlaybackController::seekTo(double position_sec) {
-  if (!playing_) {
+  if (!playing_ || active_job_id_ == 0) {
     return;
   }
   engine_->seekTo(position_sec);
@@ -159,7 +164,17 @@ void PlaybackController::play(const Video& video) {
 
   const QString open_url = media_url.isLocalFile() ? media_url.toLocalFile()
                                                    : media_url.toString();
-  engine_->startPlayback(open_url);
+  active_job_id_ = engine_->startPlayback(open_url);
+  if (active_job_id_ == 0) {
+    playing_ = false;
+    TearDownAudio();
+    if (player_widget_ != NULL) {
+      player_widget_->setLoadingCoverVisible(false);
+      player_widget_->showHintPage();
+    }
+    emit errorOccurred(QString::fromUtf8("无法开始播放"));
+    return;
+  }
   emit statusMessage(QString::fromUtf8("正在播放：") + video.title);
 }
 
@@ -186,6 +201,7 @@ void PlaybackController::pause() {
 }
 
 void PlaybackController::stop() {
+  active_job_id_ = 0;
   engine_->requestStop();
   engine_->wait(5000);
   TearDownAudio();
@@ -203,8 +219,9 @@ void PlaybackController::stop() {
   emit statusMessage(QString::fromUtf8("已停止"));
 }
 
-void PlaybackController::onVideoFrame(const QImage& frame, double /*pts_sec*/) {
-  if (!playing_ || paused_ || frame.isNull()) {
+void PlaybackController::onVideoFrame(const QImage& frame, double /*pts_sec*/,
+                                      quint64 job_id) {
+  if (!IsActiveJob(job_id) || !playing_ || paused_ || frame.isNull()) {
     return;
   }
   if (player_widget_ != NULL) {
@@ -217,27 +234,35 @@ void PlaybackController::onVideoFrame(const QImage& frame, double /*pts_sec*/) {
 }
 
 void PlaybackController::onAudioSamples(const QByteArray& pcm,
-                                        double /*pts_sec*/) {
-  if (!playing_ || paused_ || audio_device_ == NULL || pcm.isEmpty()) {
+                                        double /*pts_sec*/, quint64 job_id) {
+  if (!IsActiveJob(job_id) || !playing_ || paused_ || audio_device_ == NULL ||
+      pcm.isEmpty()) {
     return;
   }
   audio_device_->write(pcm);
 }
 
-void PlaybackController::onDurationReady(double duration_sec) {
+void PlaybackController::onDurationReady(double duration_sec, quint64 job_id) {
+  if (!IsActiveJob(job_id)) {
+    return;
+  }
   duration_sec_ = duration_sec;
   EmitProgress();
 }
 
-void PlaybackController::onPositionChanged(double position_sec) {
-  if (scrubbing_) {
+void PlaybackController::onPositionChanged(double position_sec,
+                                           quint64 job_id) {
+  if (!IsActiveJob(job_id) || scrubbing_) {
     return;
   }
   position_sec_ = position_sec;
   EmitProgress();
 }
 
-void PlaybackController::onSeekCompleted(double position_sec) {
+void PlaybackController::onSeekCompleted(double position_sec, quint64 job_id) {
+  if (!IsActiveJob(job_id)) {
+    return;
+  }
   position_sec_ = position_sec;
   EmitProgress();
   TearDownAudio();
@@ -250,7 +275,12 @@ void PlaybackController::onSeekCompleted(double position_sec) {
   }
 }
 
-void PlaybackController::onEngineFailed(const QString& message) {
+void PlaybackController::onEngineFailed(const QString& message,
+                                        quint64 job_id) {
+  if (!IsActiveJob(job_id)) {
+    return;
+  }
+  active_job_id_ = 0;
   playing_ = false;
   TearDownAudio();
   if (player_widget_ != NULL) {
@@ -261,7 +291,11 @@ void PlaybackController::onEngineFailed(const QString& message) {
   emit errorOccurred(message);
 }
 
-void PlaybackController::onEngineEnded() {
+void PlaybackController::onEngineEnded(quint64 job_id) {
+  if (!IsActiveJob(job_id)) {
+    return;
+  }
+  active_job_id_ = 0;
   playing_ = false;
   if (duration_sec_ > 0.0) {
     position_sec_ = duration_sec_;

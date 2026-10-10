@@ -13,13 +13,25 @@
 #include <unistd.h>
 #endif
 
-#include <cstdlib>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
 
 namespace square_dance {
 namespace server {
+namespace {
+
+bool FileNonEmpty(const std::string& path) {
+  std::ifstream in(path.c_str(), std::ios::in | std::ios::binary);
+  if (!in) {
+    return false;
+  }
+  in.seekg(0, std::ios::end);
+  return in.tellg() > 0;
+}
+
+}  // namespace
 
 FfmpegThumbnailGenerator::FfmpegThumbnailGenerator(
     const std::string& ffmpeg_path)
@@ -34,11 +46,12 @@ bool FfmpegThumbnailGenerator::generate(const ThumbJob& job,
     return false;
   }
 
-  // Extract a frame near 1s (falls back near start for short clips).
+  // -update 1: required by recent ffmpeg image2 muxer for a single .jpg path.
+  // -an: skip audio (MXF multi-track audio can confuse some builds).
   std::ostringstream cmd;
 #if defined(_WIN32)
   cmd << "\"" << ffmpeg_path_ << "\" -y -ss 1 -i \"" << job.video_path
-      << "\" -frames:v 1 -q:v 2 \"" << job.thumb_path << "\"";
+      << "\" -an -frames:v 1 -update 1 -q:v 2 \"" << job.thumb_path << "\"";
   STARTUPINFOA si;
   PROCESS_INFORMATION pi;
   ZeroMemory(&si, sizeof(si));
@@ -47,10 +60,19 @@ bool FfmpegThumbnailGenerator::generate(const ThumbJob& job,
   std::string cmdline = cmd.str();
   std::vector<char> mutable_cmd(cmdline.begin(), cmdline.end());
   mutable_cmd.push_back('\0');
-  if (!CreateProcessA(NULL, &mutable_cmd[0], NULL, NULL, FALSE,
-                      CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+
+  // Prefer explicit exe path so we do not depend on PATH (common when the
+  // server is launched from an IDE / Start-Process without vendor ffmpeg).
+  const char* app =
+      (ffmpeg_path_.find('\\') != std::string::npos ||
+       ffmpeg_path_.find('/') != std::string::npos)
+          ? ffmpeg_path_.c_str()
+          : NULL;
+
+  if (!CreateProcessA(app, &mutable_cmd[0], NULL, NULL, FALSE, CREATE_NO_WINDOW,
+                      NULL, NULL, &si, &pi)) {
     if (error != NULL) {
-      *error = "CreateProcess failed for ffmpeg";
+      *error = "CreateProcess failed for ffmpeg (check ffmpeg_path in config)";
     }
     return false;
   }
@@ -59,19 +81,24 @@ bool FfmpegThumbnailGenerator::generate(const ThumbJob& job,
   GetExitCodeProcess(pi.hProcess, &code);
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
-  if (code != 0) {
+  if (!FileNonEmpty(job.thumb_path)) {
     if (error != NULL) {
-      *error = "ffmpeg exited with non-zero status";
+      std::ostringstream ss;
+      ss << "ffmpeg produced no thumbnail (exit=" << code << ")";
+      *error = ss.str();
     }
     return false;
   }
 #else
   cmd << "\"" << ffmpeg_path_ << "\" -y -ss 1 -i \"" << job.video_path
-      << "\" -frames:v 1 -q:v 2 \"" << job.thumb_path << "\" 2>/dev/null";
+      << "\" -an -frames:v 1 -update 1 -q:v 2 \"" << job.thumb_path
+      << "\" 2>/dev/null";
   const int rc = std::system(cmd.str().c_str());
-  if (rc != 0) {
+  if (!FileNonEmpty(job.thumb_path)) {
     if (error != NULL) {
-      *error = "ffmpeg exited with non-zero status";
+      std::ostringstream ss;
+      ss << "ffmpeg produced no thumbnail (rc=" << rc << ")";
+      *error = ss.str();
     }
     return false;
   }

@@ -81,3 +81,21 @@ TEST_F(PlaylistStoreTest, AppendFromVideo) {
   ASSERT_EQ(store.items().size(), 1);
   EXPECT_EQ(store.items()[0].id, 9);
 }
+
+TEST_F(PlaylistStoreTest, MergeFromVideoFillsThumbnail) {
+  square_dance::client::PlaylistStore store(path_);
+  square_dance::client::PlaylistItem item = MakeItem(3, "Clip");
+  item.thumbnail_url.clear();
+  EXPECT_TRUE(store.append(item));
+  EXPECT_TRUE(store.items()[0].thumbnail_url.isEmpty());
+
+  square_dance::client::Video video;
+  video.id = 3;
+  video.title = QString::fromUtf8("Clip");
+  video.play_url = item.play_url;
+  video.thumbnail_url =
+      QString::fromUtf8("http://127.0.0.1:8080/media/thumbs/3.jpg");
+  EXPECT_TRUE(store.mergeFromVideo(video));
+  EXPECT_EQ(store.items()[0].thumbnail_url, video.thumbnail_url);
+  EXPECT_FALSE(store.mergeFromVideo(video));
+}

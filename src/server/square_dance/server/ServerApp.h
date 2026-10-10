@@ -47,6 +47,7 @@ class ServerApp {
 
   bool EnsureSqliteParentDir(std::string* error);
   void WireHandlers();
+  void EnqueueMissingThumbnails();
 
   ServerConfig config_;
   std::atomic<bool> started_;

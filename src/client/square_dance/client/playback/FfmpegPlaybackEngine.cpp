@@ -58,6 +58,8 @@ FfmpegPlaybackEngine::FfmpegPlaybackEngine(QObject* parent)
       last_reported_position_sec_(-1.0),
       pending_seek_(false),
       pending_seek_sec_(0.0),
+      job_id_(0),
+      next_job_id_(0),
       format_ctx_(NULL),
       video_codec_ctx_(NULL),
       audio_codec_ctx_(NULL),
@@ -74,11 +76,17 @@ FfmpegPlaybackEngine::~FfmpegPlaybackEngine() {
   CloseInput();
 }
 
-void FfmpegPlaybackEngine::startPlayback(const QString& url) {
+quint64 FfmpegPlaybackEngine::startPlayback(const QString& url) {
   requestStop();
-  wait(8000);
+  if (isRunning() && !wait(8000)) {
+    emit playbackFailed(QString::fromUtf8("无法停止上一次播放"), 0);
+    return 0;
+  }
+  quint64 job = 0;
   {
     QMutexLocker lock(&mutex_);
+    job = ++next_job_id_;
+    job_id_ = job;
     url_ = url;
     stop_requested_ = false;
     paused_ = false;
@@ -93,6 +101,12 @@ void FfmpegPlaybackEngine::startPlayback(const QString& url) {
     last_reported_position_sec_ = -1.0;
   }
   start();
+  return job;
+}
+
+quint64 FfmpegPlaybackEngine::currentJobId() const {
+  QMutexLocker lock(&mutex_);
+  return job_id_;
 }
 
 void FfmpegPlaybackEngine::requestStop() {
@@ -118,6 +132,9 @@ void FfmpegPlaybackEngine::setPaused(bool paused) {
 }
 
 bool FfmpegPlaybackEngine::ShouldAbort() const {
+  // Intentionally lock-free: called from FFmpeg interrupt + while mutex_ may
+  // already be held in PaceToPts/DecodeLoop. stop_requested_ is only flipped
+  // to true (requestStop) or reset under mutex before start().
   return stop_requested_ || isInterruptionRequested();
 }
 
@@ -177,7 +194,7 @@ bool FfmpegPlaybackEngine::PerformSeek(double target_sec) {
   return true;
 }
 
-void FfmpegPlaybackEngine::MaybeEmitPosition(double pts_sec) {
+void FfmpegPlaybackEngine::MaybeEmitPosition(double pts_sec, quint64 job_id) {
   double pos = pts_sec;
   if (duration_sec_ > 0.0) {
     pos = qBound(0.0, pos, duration_sec_);
@@ -188,7 +205,7 @@ void FfmpegPlaybackEngine::MaybeEmitPosition(double pts_sec) {
       pos - last_reported_position_sec_ >= 0.2 ||
       (duration_sec_ > 0.0 && duration_sec_ - pos < 0.05)) {
     last_reported_position_sec_ = pos;
-    emit positionChanged(pos);
+    emit positionChanged(pos, job_id);
   }
 }
 
@@ -207,8 +224,30 @@ bool FfmpegPlaybackEngine::OpenInput(const QString& url, QString* error) {
   fmt->interrupt_callback.opaque = this;
 
   const QByteArray path = UrlForFfmpeg(url);
+  const QUrl parsed(url);
+  const bool network = parsed.scheme() == QString::fromUtf8("http") ||
+                       parsed.scheme() == QString::fromUtf8("https");
+
   AVFormatContext* opened = fmt;
-  int rc = avformat_open_input(&opened, path.constData(), NULL, NULL);
+  AVDictionary* open_opts = NULL;
+  if (network) {
+    // Start after a small probe (Range-capable server). Do not wait for the
+    // full multi-100MB body before the first frame.
+    av_dict_set(&open_opts, "probesize", "524288", 0);        // 512 KiB
+    av_dict_set(&open_opts, "analyzeduration", "1000000", 0);  // 1s
+    av_dict_set(&open_opts, "fflags", "nobuffer", 0);
+    av_dict_set(&open_opts, "flags", "low_delay", 0);
+    av_dict_set(&open_opts, "reconnect", "1", 0);
+    av_dict_set(&open_opts, "reconnect_streamed", "1", 0);
+    av_dict_set(&open_opts, "reconnect_delay_max", "2", 0);
+    fmt->probesize = 512 * 1024;
+    fmt->max_analyze_duration = AV_TIME_BASE;  // 1 second
+  } else {
+    av_dict_set(&open_opts, "probesize", "2500000", 0);
+    av_dict_set(&open_opts, "analyzeduration", "2000000", 0);
+  }
+  int rc = avformat_open_input(&opened, path.constData(), NULL, &open_opts);
+  av_dict_free(&open_opts);
   if (rc < 0) {
     avformat_free_context(fmt);
     if (error != NULL) {
@@ -218,7 +257,12 @@ bool FfmpegPlaybackEngine::OpenInput(const QString& url, QString* error) {
   }
   format_ctx_ = opened;
 
-  rc = avformat_find_stream_info(static_cast<AVFormatContext*>(format_ctx_), NULL);
+  AVFormatContext* fctx = static_cast<AVFormatContext*>(format_ctx_);
+  if (network) {
+    fctx->probesize = 512 * 1024;
+    fctx->max_analyze_duration = AV_TIME_BASE;
+  }
+  rc = avformat_find_stream_info(fctx, NULL);
   if (rc < 0) {
     if (error != NULL) {
       *error = QString::fromUtf8("读取媒体信息失败：") + AvErr(rc);
@@ -303,14 +347,19 @@ bool FfmpegPlaybackEngine::OpenCodecs(QString* error) {
       }
       return false;
     }
-    sws_ctx_ = sws_getContext(frame_w_, frame_h_, ctx->pix_fmt, frame_w_,
-                              frame_h_, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL,
-                              NULL, NULL);
-    if (sws_ctx_ == NULL) {
-      if (error != NULL) {
-        *error = QString::fromUtf8("颜色转换初始化失败");
+    // pix_fmt may stay NONE until the first decoded frame (esp. after a short
+    // probe). Defer sws_getContext to DecodeLoop instead of aborting in swscale.
+    sws_ctx_ = NULL;
+    if (ctx->pix_fmt != AV_PIX_FMT_NONE) {
+      sws_ctx_ = sws_getContext(frame_w_, frame_h_, ctx->pix_fmt, frame_w_,
+                                frame_h_, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL,
+                                NULL, NULL);
+      if (sws_ctx_ == NULL) {
+        if (error != NULL) {
+          *error = QString::fromUtf8("颜色转换初始化失败");
+        }
+        return false;
       }
-      return false;
     }
   }
 
@@ -394,32 +443,34 @@ bool FfmpegPlaybackEngine::OpenCodecs(QString* error) {
 
 void FfmpegPlaybackEngine::run() {
   QString url;
+  quint64 job = 0;
   {
     QMutexLocker lock(&mutex_);
     if (!has_job_) {
       return;
     }
     url = url_;
+    job = job_id_;
     has_job_ = false;
   }
 
   QString error;
   if (!OpenInput(url, &error) || !OpenCodecs(&error)) {
     CloseInput();
-    emit playbackFailed(error);
+    emit playbackFailed(error, job);
     return;
   }
 
   duration_sec_ = ComputeDurationSec();
   last_reported_position_sec_ = -1.0;
   pending_seek_ = false;
-  emit durationReady(duration_sec_);
-  emit positionChanged(0.0);
+  emit durationReady(duration_sec_, job);
+  emit positionChanged(0.0, job);
 
-  DecodeLoop();
+  DecodeLoop(job);
   CloseInput();
-  if (!isInterruptionRequested()) {
-    emit playbackEnded();
+  if (!ShouldAbort()) {
+    emit playbackEnded(job);
   }
 }
 
@@ -463,7 +514,7 @@ void FfmpegPlaybackEngine::PaceToPts(double pts_sec) {
   }
 }
 
-void FfmpegPlaybackEngine::DecodeLoop() {
+void FfmpegPlaybackEngine::DecodeLoop(quint64 job_id) {
   AVFormatContext* fmt = static_cast<AVFormatContext*>(format_ctx_);
   AVCodecContext* vctx = static_cast<AVCodecContext*>(video_codec_ctx_);
   AVCodecContext* actx = static_cast<AVCodecContext*>(audio_codec_ctx_);
@@ -475,13 +526,14 @@ void FfmpegPlaybackEngine::DecodeLoop() {
   if (packet == NULL || frame == NULL) {
     av_packet_free(&packet);
     av_frame_free(&frame);
-    emit playbackFailed(QString::fromUtf8("解码缓冲分配失败"));
+    emit playbackFailed(QString::fromUtf8("解码缓冲分配失败"), job_id);
     return;
   }
 
-  QImage rgb(frame_w_, frame_h_, QImage::Format_RGB888);
-  uint8_t* dst_slices[4] = {rgb.bits(), NULL, NULL, NULL};
-  int dst_linesize[4] = {static_cast<int>(rgb.bytesPerLine()), 0, 0, 0};
+  QImage rgb;
+  if (frame_w_ > 0 && frame_h_ > 0) {
+    rgb = QImage(frame_w_, frame_h_, QImage::Format_RGB888);
+  }
 
   while (!ShouldAbort()) {
     {
@@ -497,8 +549,8 @@ void FfmpegPlaybackEngine::DecodeLoop() {
         pending_seek_ = false;
         lock.unlock();
         if (PerformSeek(target)) {
-          emit seekCompleted(target);
-          MaybeEmitPosition(target);
+          emit seekCompleted(target, job_id);
+          MaybeEmitPosition(target, job_id);
         }
         continue;
       }
@@ -510,12 +562,13 @@ void FfmpegPlaybackEngine::DecodeLoop() {
     }
     if (rc < 0) {
       if (rc != AVERROR_EXIT) {
-        emit playbackFailed(QString::fromUtf8("读取失败：") + AvErr(rc));
+        emit playbackFailed(QString::fromUtf8("读取失败：") + AvErr(rc),
+                            job_id);
       }
       break;
     }
 
-    if (packet->stream_index == video_stream_ && vctx != NULL && sws != NULL) {
+    if (packet->stream_index == video_stream_ && vctx != NULL) {
       rc = avcodec_send_packet(vctx, packet);
       av_packet_unref(packet);
       if (rc < 0) {
@@ -529,6 +582,45 @@ void FfmpegPlaybackEngine::DecodeLoop() {
         if (rc < 0) {
           break;
         }
+        if (frame->format == AV_PIX_FMT_NONE || frame->width <= 0 ||
+            frame->height <= 0) {
+          av_frame_unref(frame);
+          continue;
+        }
+        if (sws == NULL || frame_w_ != frame->width ||
+            frame_h_ != frame->height) {
+          if (sws != NULL) {
+            sws_freeContext(sws);
+            sws = NULL;
+            sws_ctx_ = NULL;
+          }
+          sws = sws_getContext(frame->width, frame->height,
+                               static_cast<AVPixelFormat>(frame->format),
+                               frame->width, frame->height, AV_PIX_FMT_RGB24,
+                               SWS_BILINEAR, NULL, NULL, NULL);
+          if (sws == NULL) {
+            av_frame_unref(frame);
+            {
+              QMutexLocker lock(&mutex_);
+              stop_requested_ = true;
+            }
+            emit playbackFailed(QString::fromUtf8("颜色转换初始化失败"),
+                                job_id);
+            av_packet_free(&packet);
+            av_frame_free(&frame);
+            return;
+          }
+          sws_ctx_ = sws;
+          frame_w_ = frame->width;
+          frame_h_ = frame->height;
+          rgb = QImage(frame_w_, frame_h_, QImage::Format_RGB888);
+        }
+        if (rgb.isNull()) {
+          av_frame_unref(frame);
+          continue;
+        }
+        uint8_t* dst_slices[4] = {rgb.bits(), NULL, NULL, NULL};
+        int dst_linesize[4] = {static_cast<int>(rgb.bytesPerLine()), 0, 0, 0};
         sws_scale(sws, frame->data, frame->linesize, 0, frame_h_, dst_slices,
                   dst_linesize);
         double pts = 0.0;
@@ -541,7 +633,7 @@ void FfmpegPlaybackEngine::DecodeLoop() {
           av_frame_unref(frame);
           break;
         }
-        emit videoFrameReady(rgb.copy(), pts);
+        emit videoFrameReady(rgb.copy(), pts, job_id);
         av_frame_unref(frame);
       }
       continue;
@@ -565,13 +657,21 @@ void FfmpegPlaybackEngine::DecodeLoop() {
         const int max_out = av_rescale_rnd(
             swr_get_delay(swr, frame->sample_rate) + frame->nb_samples,
             kAudioSampleRate, frame->sample_rate, AV_ROUND_UP);
-        av_samples_alloc(&out_buf, NULL, kAudioChannels, max_out,
-                         AV_SAMPLE_FMT_S16, 0);
+        if (max_out <= 0) {
+          av_frame_unref(frame);
+          continue;
+        }
+        const int alloc_rc = av_samples_alloc(
+            &out_buf, NULL, kAudioChannels, max_out, AV_SAMPLE_FMT_S16, 0);
+        if (alloc_rc < 0 || out_buf == NULL) {
+          av_frame_unref(frame);
+          continue;
+        }
         const int converted =
             swr_convert(swr, &out_buf, max_out,
                         const_cast<const uint8_t**>(frame->extended_data),
                         frame->nb_samples);
-        if (converted > 0 && out_buf != NULL) {
+        if (converted > 0) {
           const int bytes =
               converted * kAudioChannels * kAudioBytesPerSample;
           QByteArray pcm(reinterpret_cast<const char*>(out_buf), bytes);
@@ -582,13 +682,11 @@ void FfmpegPlaybackEngine::DecodeLoop() {
           }
           PaceToPts(pts);
           if (!ShouldAbort()) {
-            MaybeEmitPosition(pts);
-            emit audioSamplesReady(pcm, pts);
+            MaybeEmitPosition(pts, job_id);
+            emit audioSamplesReady(pcm, pts, job_id);
           }
         }
-        if (out_buf != NULL) {
-          av_freep(&out_buf);
-        }
+        av_freep(&out_buf);
         av_frame_unref(frame);
       }
       continue;

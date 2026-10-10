@@ -8,6 +8,7 @@
 #include <QPointer>
 #include <QString>
 #include <QUrl>
+#include <QtGlobal>
 
 class QAudioOutput;
 class QIODevice;
@@ -41,13 +42,13 @@ class PlaybackController : public QObject {
   void setScrubbing(bool scrubbing);
 
  private slots:
-  void onVideoFrame(const QImage& frame, double pts_sec);
-  void onAudioSamples(const QByteArray& pcm, double pts_sec);
-  void onEngineFailed(const QString& message);
-  void onEngineEnded();
-  void onDurationReady(double duration_sec);
-  void onPositionChanged(double position_sec);
-  void onSeekCompleted(double position_sec);
+  void onVideoFrame(const QImage& frame, double pts_sec, quint64 job_id);
+  void onAudioSamples(const QByteArray& pcm, double pts_sec, quint64 job_id);
+  void onEngineFailed(const QString& message, quint64 job_id);
+  void onEngineEnded(quint64 job_id);
+  void onDurationReady(double duration_sec, quint64 job_id);
+  void onPositionChanged(double position_sec, quint64 job_id);
+  void onSeekCompleted(double position_sec, quint64 job_id);
 
  private:
   PlaybackController(const PlaybackController&);
@@ -58,6 +59,7 @@ class PlaybackController : public QObject {
   void TearDownAudio();
   bool EnsureAudioOutput(QString* error);
   void EmitProgress();
+  bool IsActiveJob(quint64 job_id) const;
 
   QPointer<VideoPlayerWidget> player_widget_;
   FfmpegPlaybackEngine* engine_;
@@ -70,6 +72,7 @@ class PlaybackController : public QObject {
   double duration_sec_;
   double position_sec_;
   QString pending_title_;
+  quint64 active_job_id_;
 };
 
 }  // namespace client

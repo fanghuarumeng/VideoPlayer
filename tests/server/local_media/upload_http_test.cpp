@@ -109,6 +109,40 @@ TEST_F(UploadHttpTest, UploadStoresAndServesMedia) {
   EXPECT_EQ(media->body, "fake-video-bytes");
 }
 
+TEST_F(UploadHttpTest, MediaEndpointSupportsByteRange) {
+  httplib::Client client("127.0.0.1", server_->bound_port());
+  client.set_connection_timeout(2, 0);
+  client.set_read_timeout(5, 0);
+
+  httplib::MultipartFormDataItems items;
+  items.push_back({"file", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "clip.mp4",
+                   "video/mp4"});
+  items.push_back({"title", "RangeClip", "", ""});
+  const httplib::Result up = client.Post("/api/v1/videos/upload", items);
+  ASSERT_TRUE(up);
+  ASSERT_EQ(up->status, 201);
+  const nlohmann::json body = nlohmann::json::parse(up->body);
+  const std::string play_url = body.at("play_url").get<std::string>();
+  const std::string prefix =
+      "http://127.0.0.1:" + std::to_string(server_->bound_port());
+  const std::string media_path = play_url.substr(prefix.size());
+
+  httplib::Headers headers = {{"Range", "bytes=0-4"}};
+  const httplib::Result ranged = client.Get(media_path.c_str(), headers);
+  ASSERT_TRUE(ranged);
+  EXPECT_EQ(ranged->status, 206);
+  EXPECT_EQ(ranged->body, "ABCDE");
+  EXPECT_TRUE(ranged->has_header("Content-Range") ||
+              ranged->has_header("content-range"));
+
+  const httplib::Result full = client.Get(media_path.c_str());
+  ASSERT_TRUE(full);
+  EXPECT_EQ(full->status, 200);
+  EXPECT_EQ(full->body, "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+  EXPECT_TRUE(full->has_header("Accept-Ranges") ||
+              full->has_header("accept-ranges"));
+}
+
 TEST_F(UploadHttpTest, RejectsDisallowedExtension) {
   httplib::Client client("127.0.0.1", server_->bound_port());
   httplib::MultipartFormDataItems items;

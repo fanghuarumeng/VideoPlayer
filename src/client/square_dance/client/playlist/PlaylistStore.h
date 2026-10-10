@@ -32,6 +32,10 @@ class PlaylistStore {
   bool append(const Video& video);
   void clear();
 
+  // Refresh snapshot fields for an id already in the list (e.g. thumb arrived).
+  // Returns true if an item was updated.
+  bool mergeFromVideo(const Video& video);
+
   QVector<PlaylistItem> items() const;
   int currentIndex() const;
   void setCurrentIndex(int index);

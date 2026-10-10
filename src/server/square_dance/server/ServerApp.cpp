@@ -182,6 +182,7 @@ bool ServerApp::Start(std::string* error) {
         }
       });
   thumb_queue_->start(config_.thumbnail_workers);
+  EnqueueMissingThumbnails();
 
   // Initial catalog pull so search works immediately after boot.
   ingest_->runOnce();
@@ -243,6 +244,40 @@ void ServerApp::Stop() {
   repo_.reset();
   started_ = false;
   LogInfo("SquareDanceServer stopped");
+}
+
+void ServerApp::EnqueueMissingThumbnails() {
+  if (repo_.get() == NULL || media_store_.get() == NULL ||
+      thumb_queue_.get() == NULL) {
+    return;
+  }
+  const std::vector<Video> videos = repo_->listAll(200, 0);
+  int enqueued = 0;
+  for (std::size_t i = 0; i < videos.size(); ++i) {
+    const Video& video = videos[i];
+    if (video.source_type != "local_upload" || !video.thumbnail_url.empty()) {
+      continue;
+    }
+    const std::string::size_type slash = video.play_url.find_last_of('/');
+    if (slash == std::string::npos || slash + 1 >= video.play_url.size()) {
+      continue;
+    }
+    const std::string video_name = video.play_url.substr(slash + 1);
+    if (video_name.empty() || video.external_id.empty()) {
+      continue;
+    }
+    ThumbJob job;
+    job.video_id = video.id;
+    job.video_path = media_store_->videos_dir() + "/" + video_name;
+    job.thumb_filename = video.external_id + ".jpg";
+    job.thumb_path = media_store_->thumbs_dir() + "/" + job.thumb_filename;
+    thumb_queue_->enqueue(job);
+    ++enqueued;
+  }
+  if (enqueued > 0) {
+    LogInfo("enqueued " + std::to_string(enqueued) +
+            " missing local-upload thumbnail(s)");
+  }
 }
 
 int ServerApp::RunBlocking() {

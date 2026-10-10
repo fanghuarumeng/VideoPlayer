@@ -192,6 +192,37 @@ bool PlaylistStore::append(const Video& video) {
   return append(item);
 }
 
+bool PlaylistStore::mergeFromVideo(const Video& video) {
+  if (video.id == 0) {
+    return false;
+  }
+  for (int i = 0; i < items_.size(); ++i) {
+    if (items_[i].id != video.id) {
+      continue;
+    }
+    bool changed = false;
+    if (!video.title.isEmpty() && items_[i].title != video.title) {
+      items_[i].title = video.title;
+      changed = true;
+    }
+    if (!video.play_url.isEmpty() && items_[i].play_url != video.play_url) {
+      items_[i].play_url = video.play_url;
+      changed = true;
+    }
+    if (!video.thumbnail_url.isEmpty() &&
+        items_[i].thumbnail_url != video.thumbnail_url) {
+      items_[i].thumbnail_url = video.thumbnail_url;
+      changed = true;
+    }
+    if (changed) {
+      QString error;
+      save(&error);
+    }
+    return changed;
+  }
+  return false;
+}
+
 void PlaylistStore::clear() {
   items_.clear();
   current_index_ = -1;

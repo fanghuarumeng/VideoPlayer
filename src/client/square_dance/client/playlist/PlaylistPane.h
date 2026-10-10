@@ -2,16 +2,17 @@
 
 #include "square_dance/client/playlist/PlaylistStore.h"
 
-#include <QModelIndex>
+#include <QHash>
 #include <QWidget>
 
-class QListView;
+class QListWidget;
+class QListWidgetItem;
+class QNetworkAccessManager;
+class QNetworkReply;
 class QPushButton;
 
 namespace square_dance {
 namespace client {
-
-class PlaylistModel;
 
 class PlaylistPane : public QWidget {
   Q_OBJECT
@@ -19,7 +20,6 @@ class PlaylistPane : public QWidget {
  public:
   explicit PlaylistPane(PlaylistStore* store, QWidget* parent = 0);
 
-  PlaylistModel* model() const;
   bool selectedItem(PlaylistItem* out) const;
   void selectRow(int row);
   void refresh();
@@ -30,13 +30,22 @@ class PlaylistPane : public QWidget {
 
  private slots:
   void onClearClicked();
-  void onDoubleClicked(const QModelIndex& index);
+  void onItemDoubleClicked();
+  void onThumbFinished();
 
  private:
+  void RebuildList();
+  void RequestThumbnails();
+  void RequestOneThumbnail(const PlaylistItem& item);
+  void CancelAllThumbReplies();
+  QListWidgetItem* FindItemById(qint64 id) const;
+  PlaylistItem ItemFromRow(int row) const;
+
   PlaylistStore* store_;
-  PlaylistModel* model_;
-  QListView* list_;
+  QListWidget* list_;
   QPushButton* clear_btn_;
+  QNetworkAccessManager* nam_;
+  QHash<QNetworkReply*, qint64> thumb_replies_;
 };
 
 }  // namespace client

@@ -346,6 +346,15 @@ void ElderMainWindow::onUploadFinished(const Video& video) {
 
 void ElderMainWindow::onListFinished(const QVector<Video>& videos) {
   library_pane_->setVideos(videos);
+  bool playlist_changed = false;
+  for (int i = 0; i < videos.size(); ++i) {
+    if (playlist_store_ != NULL && playlist_store_->mergeFromVideo(videos[i])) {
+      playlist_changed = true;
+    }
+  }
+  if (playlist_changed && playlist_pane_ != NULL) {
+    playlist_pane_->refresh();
+  }
   SetStatusMessage(QString::fromUtf8("视频库共 %1 个").arg(videos.size()));
 }
 
@@ -358,6 +367,9 @@ void ElderMainWindow::onLibraryAddToPlaylist(const QVector<Video>& videos) {
   for (int i = 0; i < videos.size(); ++i) {
     if (playlist_store_->append(videos[i])) {
       ++added;
+    } else {
+      // Already in list: still refresh snapshot (e.g. thumb arrived later).
+      playlist_store_->mergeFromVideo(videos[i]);
     }
   }
   playlist_pane_->refresh();
@@ -373,6 +385,10 @@ void ElderMainWindow::onLibraryPlayRequested(const Video& video) {
 void ElderMainWindow::onVideoUpserted(const Video& video) {
   model_->applyUpserted(video);
   library_pane_->upsertVideo(video);
+  if (playlist_store_ != NULL && playlist_store_->mergeFromVideo(video) &&
+      playlist_pane_ != NULL) {
+    playlist_pane_->refresh();
+  }
 }
 
 void ElderMainWindow::onVideoRemoved(qint64 id) {

@@ -7,6 +7,7 @@
 #include <QString>
 #include <QThread>
 #include <QWaitCondition>
+#include <QtGlobal>
 
 namespace square_dance {
 namespace client {
@@ -14,6 +15,8 @@ namespace client {
 // Demux + decode on a worker thread (single AVFormatContext).
 // Audio is converted to interleaved s16le stereo 44100 for QAudioOutput.
 // Video frames are RGB888 QImages with PTS seconds.
+// Every signal carries job_id so the controller can ignore stale QueuedConnection
+// deliveries after stop/restart (rapid double-click play).
 class FfmpegPlaybackEngine : public QThread {
   Q_OBJECT
 
@@ -21,24 +24,27 @@ class FfmpegPlaybackEngine : public QThread {
   explicit FfmpegPlaybackEngine(QObject* parent = 0);
   ~FfmpegPlaybackEngine();
 
-  void startPlayback(const QString& url);
+  // Returns the job id for this start, or 0 if the previous worker could not be
+  // stopped in time.
+  quint64 startPlayback(const QString& url);
   void requestStop();
   void setPaused(bool paused);
   void seekTo(double position_sec);
   bool ShouldAbort() const;
+  quint64 currentJobId() const;
 
   static const int kAudioSampleRate = 44100;
   static const int kAudioChannels = 2;
   static const int kAudioBytesPerSample = 2;  // s16
 
  signals:
-  void videoFrameReady(const QImage& frame, double pts_sec);
-  void audioSamplesReady(const QByteArray& pcm, double pts_sec);
-  void playbackFailed(const QString& message);
-  void playbackEnded();
-  void durationReady(double duration_sec);
-  void positionChanged(double position_sec);
-  void seekCompleted(double position_sec);
+  void videoFrameReady(const QImage& frame, double pts_sec, quint64 job_id);
+  void audioSamplesReady(const QByteArray& pcm, double pts_sec, quint64 job_id);
+  void playbackFailed(const QString& message, quint64 job_id);
+  void playbackEnded(quint64 job_id);
+  void durationReady(double duration_sec, quint64 job_id);
+  void positionChanged(double position_sec, quint64 job_id);
+  void seekCompleted(double position_sec, quint64 job_id);
 
  protected:
   void run();
@@ -50,14 +56,14 @@ class FfmpegPlaybackEngine : public QThread {
   bool OpenInput(const QString& url, QString* error);
   void CloseInput();
   bool OpenCodecs(QString* error);
-  void DecodeLoop();
+  void DecodeLoop(quint64 job_id);
   // Sleep so media PTS does not run ahead of wall clock (keeps A/V realtime).
   void PaceToPts(double pts_sec);
   double ComputeDurationSec() const;
   bool PerformSeek(double target_sec);
-  void MaybeEmitPosition(double pts_sec);
+  void MaybeEmitPosition(double pts_sec, quint64 job_id);
 
-  QMutex mutex_;
+  mutable QMutex mutex_;
   QWaitCondition pause_wait_;
   QString url_;
   bool stop_requested_;
@@ -73,6 +79,8 @@ class FfmpegPlaybackEngine : public QThread {
   double last_reported_position_sec_;
   bool pending_seek_;
   double pending_seek_sec_;
+  quint64 job_id_;
+  quint64 next_job_id_;
 
   // Opaque FFmpeg pointers kept as void* in header to avoid pulling C API into MOC.
   void* format_ctx_;

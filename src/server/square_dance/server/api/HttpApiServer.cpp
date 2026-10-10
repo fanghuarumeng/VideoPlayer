@@ -16,8 +16,10 @@
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <thread>
+#include <vector>
 
 namespace square_dance {
 namespace server {
@@ -34,6 +36,65 @@ struct GateHolder {
     }
   }
 };
+
+// Stream file bytes (supports HTTP Range via httplib content_provider).
+// Avoids loading a 100MB+ video into RAM before the first frame can play.
+bool ServeFileRanged(const std::string& path, const std::string& content_type,
+                     httplib::Response& res) {
+  std::ifstream probe(path.c_str(),
+                      std::ios::in | std::ios::binary | std::ios::ate);
+  if (!probe) {
+    return false;
+  }
+  const std::streamoff end_pos = probe.tellg();
+  if (end_pos < 0) {
+    return false;
+  }
+  const std::size_t file_size = static_cast<std::size_t>(end_pos);
+  probe.close();
+
+  std::shared_ptr<std::ifstream> file(new std::ifstream(
+      path.c_str(), std::ios::in | std::ios::binary));
+  if (!file->good()) {
+    return false;
+  }
+
+  // Leave status at -1 so httplib can promote Range requests to 206.
+  res.set_header("Accept-Ranges", "bytes");
+  res.set_header("Cache-Control", "private, max-age=0");
+  res.set_content_provider(
+      file_size, content_type,
+      [file](size_t offset, size_t length, httplib::DataSink& sink) {
+        if (!file) {
+          return false;
+        }
+        file->clear();
+        file->seekg(static_cast<std::streamoff>(offset), std::ios::beg);
+        if (!(*file)) {
+          return false;
+        }
+        std::vector<char> buf(64 * 1024);
+        size_t remaining = length;
+        while (remaining > 0) {
+          const size_t chunk =
+              remaining < buf.size() ? remaining : buf.size();
+          file->read(&buf[0], static_cast<std::streamsize>(chunk));
+          const std::streamsize got = file->gcount();
+          if (got <= 0) {
+            break;
+          }
+          if (!sink.write(&buf[0], static_cast<size_t>(got))) {
+            return false;
+          }
+          remaining -= static_cast<size_t>(got);
+          if (static_cast<size_t>(got) < chunk) {
+            break;
+          }
+        }
+        return true;
+      });
+  return true;
+}
 
 bool IsSafeMediaName(const std::string& name) {
   if (name.empty() || name.size() > 256) {
@@ -279,19 +340,13 @@ void HttpApiServer::RegisterRoutes() {
               return;
             }
             const std::string path = media_store_->videos_dir() + "/" + name;
-            std::ifstream in(path.c_str(), std::ios::in | std::ios::binary);
-            if (!in) {
+            const std::string ext = LocalMediaStore::ExtensionOf(name);
+            const std::string ctype =
+                LocalMediaStore::ContentTypeForExtension(ext);
+            if (!ServeFileRanged(path, ctype, res)) {
               res.status = 404;
               res.set_content("{\"error\":\"not found\"}", "application/json");
-              return;
             }
-            std::ostringstream ss;
-            ss << in.rdbuf();
-            const std::string body = ss.str();
-            const std::string ext = LocalMediaStore::ExtensionOf(name);
-            res.status = 200;
-            res.set_content(body,
-                            LocalMediaStore::ContentTypeForExtension(ext));
           });
 
   svr.Get(R"(/media/thumbs/(.+))",
