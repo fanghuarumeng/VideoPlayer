@@ -5,11 +5,12 @@
 #include <memory>
 
 class QApplication;
+class QQmlApplicationEngine;
 
 namespace square_dance {
 namespace client {
 
-class ElderMainWindow;
+class PlayerUiBridge;
 
 class ClientApp {
  public:
@@ -26,7 +27,8 @@ class ClientApp {
 
   ClientConfig config_;
   std::unique_ptr<QApplication> app_;
-  std::unique_ptr<ElderMainWindow> window_;
+  std::unique_ptr<QQmlApplicationEngine> engine_;
+  std::unique_ptr<PlayerUiBridge> bridge_;
 };
 
 }  // namespace client

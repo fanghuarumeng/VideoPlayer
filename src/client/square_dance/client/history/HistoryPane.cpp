@@ -1,7 +1,6 @@
 #include "square_dance/client/history/HistoryPane.h"
 
 #include "square_dance/client/elder_ui/AppIcons.h"
-#include "square_dance/client/elder_ui/AppTheme.h"
 
 #include <QHBoxLayout>
 #include <QListWidget>
@@ -18,12 +17,13 @@ HistoryPane::HistoryPane(PlayHistoryStore* store, QWidget* parent)
       store_(store),
       list_(new QListWidget(this)),
       clear_btn_(new QPushButton(QString::fromUtf8("清空历史"), this)) {
-  list_->setStyleSheet(AppTheme::ListPanelStyle());
+  list_->setObjectName(QString::fromUtf8("recommendList"));
   list_->setIconSize(QSize(32, 32));
-  clear_btn_->setStyleSheet(AppTheme::IconButtonStyle());
+  clear_btn_->setObjectName(QString::fromUtf8("moreButton"));
+  clear_btn_->setText(QString::fromUtf8("清空历史"));
 
   QVBoxLayout* root = new QVBoxLayout(this);
-  root->setContentsMargins(8, 8, 8, 8);
+  root->setContentsMargins(0, 0, 0, 0);
   root->setSpacing(8);
   root->addWidget(list_, 1);
   root->addWidget(clear_btn_, 0, Qt::AlignLeft);

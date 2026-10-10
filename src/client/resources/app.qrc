@@ -7,5 +7,9 @@
     <file alias="icons/stop.svg">icons/stop.svg</file>
     <file alias="icons/download.svg">icons/download.svg</file>
     <file alias="icons/film.svg">icons/film.svg</file>
+    <file alias="styles/dark_player.qss">styles/dark_player.qss</file>
+    <file alias="qml/Main.qml">qml/Main.qml</file>
+    <file alias="qml/UpNext.qml">qml/UpNext.qml</file>
+    <file alias="qml/PlayerControls.qml">qml/PlayerControls.qml</file>
   </qresource>
 </RCC>

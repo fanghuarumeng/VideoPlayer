@@ -1,7 +1,6 @@
 #include "square_dance/client/elder_ui/SearchBar.h"
 
 #include "square_dance/client/elder_ui/AppIcons.h"
-#include "square_dance/client/elder_ui/AppTheme.h"
 
 #include <QAction>
 #include <QHBoxLayout>
@@ -13,18 +12,16 @@ namespace client {
 
 SearchBar::SearchBar(QWidget* parent) : QWidget(parent) {
   edit_ = new QLineEdit(this);
-  edit_->setFont(AppTheme::UiFont());
+  edit_->setObjectName(QString::fromUtf8("searchField"));
   edit_->setPlaceholderText(QString::fromUtf8("搜索视频标题…"));
-  edit_->setStyleSheet(AppTheme::SearchFieldStyle());
   edit_->setClearButtonEnabled(true);
 
   QAction* search_action = edit_->addAction(AppIcons::Search(), QLineEdit::LeadingPosition);
 
   button_ = new QPushButton(QString::fromUtf8("搜索"), this);
-  button_->setFont(AppTheme::UiFont());
+  button_->setObjectName(QString::fromUtf8("primaryButton"));
   button_->setIcon(AppIcons::Search());
   button_->setIconSize(QSize(18, 18));
-  button_->setStyleSheet(AppTheme::PrimaryButtonStyle());
   button_->setMinimumWidth(88);
   button_->setCursor(Qt::PointingHandCursor);
   Q_UNUSED(search_action);

@@ -40,6 +40,8 @@ class PlaybackController : public QObject {
   void bufferProgress(double buffered_ratio);
   void playbackFinished();
   void pausedChanged(bool paused);
+  // Emitted for each presented video frame (QML shell / alternate surfaces).
+  void videoFrameReady(const QImage& frame);
 
  public slots:
   void setScrubbing(bool scrubbing);

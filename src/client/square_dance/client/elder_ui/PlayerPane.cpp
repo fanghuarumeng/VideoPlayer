@@ -1,7 +1,6 @@
 #include "square_dance/client/elder_ui/PlayerPane.h"
 
 #include "square_dance/client/elder_ui/AppIcons.h"
-#include "square_dance/client/elder_ui/AppTheme.h"
 #include "square_dance/client/elder_ui/BufferedSeekSlider.h"
 #include "square_dance/client/playback/VideoPlayerWidget.h"
 
@@ -16,97 +15,82 @@
 namespace square_dance {
 namespace client {
 
+namespace {
+
+void StyleControlButton(QPushButton* btn, const QIcon& icon,
+                        const QString& tip) {
+  btn->setObjectName(QString::fromUtf8("controlButton"));
+  btn->setIcon(icon);
+  btn->setIconSize(QSize(20, 20));
+  btn->setToolTip(tip);
+  btn->setCursor(Qt::PointingHandCursor);
+  btn->setFlat(true);
+}
+
+}  // namespace
+
 PlayerPane::PlayerPane(QWidget* parent)
     : QWidget(parent),
       player_(new VideoPlayerWidget(this)),
+      title_label_(new QLabel(QString::fromUtf8("选择视频开始播放"), this)),
+      time_label_(new QLabel(QString::fromUtf8("0:00 / 0:00"), this)),
       progress_slider_(new BufferedSeekSlider(Qt::Horizontal, this)),
-      time_current_(new QLabel(QString::fromUtf8("0:00"), this)),
-      time_total_(new QLabel(QString::fromUtf8("0:00"), this)),
-      pause_btn_(new QPushButton(QString::fromUtf8("暂停"), this)),
+      play_btn_(new QPushButton(this)),
+      pause_btn_(new QPushButton(this)),
+      stop_btn_(new QPushButton(this)),
+      download_btn_(new QPushButton(this)),
       duration_sec_(0.0),
+      position_sec_(0.0),
       scrubbing_(false) {
-  QPushButton* play = new QPushButton(QString::fromUtf8("播放"), this);
-  QPushButton* stop = new QPushButton(QString::fromUtf8("停止"), this);
-  QPushButton* download = new QPushButton(QString::fromUtf8("下载"), this);
+  title_label_->setObjectName(QString::fromUtf8("videoTitleLabel"));
+  title_label_->setWordWrap(true);
+  time_label_->setObjectName(QString::fromUtf8("timestampLabel"));
 
-  play->setIcon(AppIcons::Play());
-  pause_btn_->setIcon(AppIcons::Pause());
-  stop->setIcon(AppIcons::Stop());
-  download->setIcon(AppIcons::Download());
-
-  const QSize icon_size(20, 20);
-  play->setIconSize(icon_size);
-  pause_btn_->setIconSize(icon_size);
-  stop->setIconSize(icon_size);
-  download->setIconSize(icon_size);
-
-  play->setFont(AppTheme::UiFont());
-  pause_btn_->setFont(AppTheme::UiFont());
-  stop->setFont(AppTheme::UiFont());
-  download->setFont(AppTheme::UiFont());
-
-  play->setStyleSheet(AppTheme::PrimaryButtonStyle());
-  pause_btn_->setStyleSheet(AppTheme::IconButtonStyle());
-  stop->setStyleSheet(AppTheme::IconButtonStyle());
-  download->setStyleSheet(AppTheme::IconButtonStyle());
-
-  play->setCursor(Qt::PointingHandCursor);
-  pause_btn_->setCursor(Qt::PointingHandCursor);
-  stop->setCursor(Qt::PointingHandCursor);
-  download->setCursor(Qt::PointingHandCursor);
-
-  time_current_->setFont(AppTheme::CaptionFont());
-  time_total_->setFont(AppTheme::CaptionFont());
-  time_current_->setStyleSheet(AppTheme::PanelTitleStyle());
-  time_total_->setStyleSheet(AppTheme::PanelTitleStyle());
-  time_current_->setMinimumWidth(40);
-  time_total_->setMinimumWidth(40);
-  time_total_->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+  StyleControlButton(play_btn_, AppIcons::Play(), QString::fromUtf8("播放"));
+  StyleControlButton(pause_btn_, AppIcons::Pause(), QString::fromUtf8("暂停"));
+  StyleControlButton(stop_btn_, AppIcons::Stop(), QString::fromUtf8("停止"));
+  StyleControlButton(download_btn_, AppIcons::Download(),
+                     QString::fromUtf8("下载"));
 
   QFrame* chrome = new QFrame(this);
   chrome->setObjectName(QString::fromUtf8("videoChrome"));
-  chrome->setStyleSheet(AppTheme::VideoChromeStyle());
-
+  chrome->setAttribute(Qt::WA_StyledBackground, true);
   QVBoxLayout* chrome_layout = new QVBoxLayout(chrome);
   chrome_layout->setContentsMargins(0, 0, 0, 0);
   chrome_layout->addWidget(player_);
 
-  QWidget* transport = new QWidget(this);
-  transport->setStyleSheet(QString::fromUtf8(
-      "QWidget { background: %1; border: 1px solid %2; border-radius: 10px; }")
-                               .arg(AppTheme::Surface(), AppTheme::Border()));
-
-  QHBoxLayout* progress_row = new QHBoxLayout();
-  progress_row->setSpacing(8);
-  progress_row->addWidget(time_current_);
-  progress_row->addWidget(progress_slider_, 1);
-  progress_row->addWidget(time_total_);
+  QFrame* meta_panel = new QFrame(this);
+  meta_panel->setObjectName(QString::fromUtf8("metaPanel"));
+  meta_panel->setAttribute(Qt::WA_StyledBackground, true);
 
   QHBoxLayout* buttons = new QHBoxLayout();
-  buttons->setContentsMargins(12, 0, 12, 10);
-  buttons->setSpacing(10);
-  buttons->addWidget(play);
+  buttons->setContentsMargins(0, 4, 0, 0);
+  buttons->setSpacing(4);
+  buttons->addWidget(play_btn_);
   buttons->addWidget(pause_btn_);
-  buttons->addWidget(stop);
+  buttons->addWidget(stop_btn_);
   buttons->addStretch(1);
-  buttons->addWidget(download);
+  buttons->addWidget(download_btn_);
 
-  QVBoxLayout* transport_layout = new QVBoxLayout(transport);
-  transport_layout->setContentsMargins(12, 10, 12, 0);
-  transport_layout->setSpacing(8);
-  transport_layout->addLayout(progress_row);
-  transport_layout->addLayout(buttons);
+  QVBoxLayout* meta = new QVBoxLayout(meta_panel);
+  meta->setContentsMargins(4, 12, 4, 4);
+  meta->setSpacing(8);
+  meta->addWidget(title_label_);
+  meta->addWidget(time_label_, 0, Qt::AlignLeft);
+  meta->addWidget(progress_slider_);
+  meta->addLayout(buttons);
 
   QVBoxLayout* layout = new QVBoxLayout(this);
-  layout->setContentsMargins(0, 0, 0, 0);
-  layout->setSpacing(10);
+  layout->setContentsMargins(0, 0, 12, 0);
+  layout->setSpacing(8);
   layout->addWidget(chrome, 1);
-  layout->addWidget(transport);
+  layout->addWidget(meta_panel, 0);
 
-  connect(play, &QPushButton::clicked, this, &PlayerPane::playClicked);
+  connect(play_btn_, &QPushButton::clicked, this, &PlayerPane::playClicked);
   connect(pause_btn_, &QPushButton::clicked, this, &PlayerPane::pauseClicked);
-  connect(stop, &QPushButton::clicked, this, &PlayerPane::stopClicked);
-  connect(download, &QPushButton::clicked, this, &PlayerPane::downloadClicked);
+  connect(stop_btn_, &QPushButton::clicked, this, &PlayerPane::stopClicked);
+  connect(download_btn_, &QPushButton::clicked, this,
+          &PlayerPane::downloadClicked);
   connect(progress_slider_, &BufferedSeekSlider::seekCommitted, this,
           &PlayerPane::onSeekCommitted);
   connect(progress_slider_, &QSlider::sliderPressed, this, [this]() {
@@ -133,21 +117,33 @@ QString PlayerPane::FormatTime(double seconds) {
       .arg(s, 2, 10, QChar('0'));
 }
 
+void PlayerPane::UpdateTimeLabel(double position_sec, double duration_sec) {
+  const QString dur =
+      duration_sec > 0.0 ? FormatTime(duration_sec) : QString::fromUtf8("--:--");
+  time_label_->setText(FormatTime(position_sec) + QString::fromUtf8(" / ") +
+                       dur);
+}
+
+void PlayerPane::setTitle(const QString& title) {
+  if (title.trimmed().isEmpty()) {
+    title_label_->setText(QString::fromUtf8("选择视频开始播放"));
+  } else {
+    title_label_->setText(title);
+  }
+}
+
 void PlayerPane::setPlaybackProgress(double position_sec, double duration_sec) {
   duration_sec_ = duration_sec;
-  time_current_->setText(FormatTime(position_sec));
+  position_sec_ = position_sec;
+  UpdateTimeLabel(position_sec, duration_sec);
   if (duration_sec > 0.0) {
-    time_total_->setText(FormatTime(duration_sec));
     if (!scrubbing_) {
       const int slider_val =
           static_cast<int>((position_sec / duration_sec) * 1000.0 + 0.5);
       progress_slider_->setValue(qBound(0, slider_val, 1000));
     }
-  } else {
-    time_total_->setText(QString::fromUtf8("--:--"));
-    if (!scrubbing_) {
-      progress_slider_->setValue(0);
-    }
+  } else if (!scrubbing_) {
+    progress_slider_->setValue(0);
   }
 }
 
@@ -157,20 +153,20 @@ void PlayerPane::setBufferProgress(double buffered_ratio) {
 
 void PlayerPane::resetPlaybackProgress() {
   duration_sec_ = 0.0;
+  position_sec_ = 0.0;
   scrubbing_ = false;
   progress_slider_->setValue(0);
   progress_slider_->setBufferRatio(0.0);
-  time_current_->setText(QString::fromUtf8("0:00"));
-  time_total_->setText(QString::fromUtf8("0:00"));
+  UpdateTimeLabel(0.0, 0.0);
   setPausedState(false);
 }
 
 void PlayerPane::setPausedState(bool paused) {
   if (paused) {
-    pause_btn_->setText(QString::fromUtf8("恢复"));
+    pause_btn_->setToolTip(QString::fromUtf8("恢复"));
     pause_btn_->setIcon(AppIcons::Play());
   } else {
-    pause_btn_->setText(QString::fromUtf8("暂停"));
+    pause_btn_->setToolTip(QString::fromUtf8("暂停"));
     pause_btn_->setIcon(AppIcons::Pause());
   }
 }
@@ -180,7 +176,8 @@ void PlayerPane::onSeekCommitted(double ratio) {
     return;
   }
   const double pos = qBound(0.0, ratio, 1.0) * duration_sec_;
-  time_current_->setText(FormatTime(pos));
+  position_sec_ = pos;
+  UpdateTimeLabel(pos, duration_sec_);
   emit seekRequested(pos);
 }
 

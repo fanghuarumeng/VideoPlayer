@@ -22,6 +22,7 @@ class PlayerPane : public QWidget {
   void setBufferProgress(double buffered_ratio);
   void resetPlaybackProgress();
   void setPausedState(bool paused);
+  void setTitle(const QString& title);
 
  signals:
   void playClicked();
@@ -36,13 +37,18 @@ class PlayerPane : public QWidget {
 
  private:
   static QString FormatTime(double seconds);
+  void UpdateTimeLabel(double position_sec, double duration_sec);
 
   VideoPlayerWidget* player_;
+  QLabel* title_label_;
+  QLabel* time_label_;
   BufferedSeekSlider* progress_slider_;
-  QLabel* time_current_;
-  QLabel* time_total_;
+  QPushButton* play_btn_;
   QPushButton* pause_btn_;
+  QPushButton* stop_btn_;
+  QPushButton* download_btn_;
   double duration_sec_;
+  double position_sec_;
   bool scrubbing_;
 };
 

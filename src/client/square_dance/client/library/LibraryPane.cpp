@@ -1,7 +1,6 @@
 #include "square_dance/client/library/LibraryPane.h"
 
 #include "square_dance/client/elder_ui/AppIcons.h"
-#include "square_dance/client/elder_ui/AppTheme.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -38,12 +37,11 @@ LibraryPane::LibraryPane(QWidget* parent)
   list_->setWordWrap(true);
   list_->setUniformItemSizes(true);
   list_->setSpacing(8);
-  list_->setStyleSheet(AppTheme::ListPanelStyle());
-
-  refresh_btn_->setStyleSheet(AppTheme::IconButtonStyle());
-  upload_btn_->setStyleSheet(AppTheme::PrimaryButtonStyle());
-  add_btn_->setStyleSheet(AppTheme::IconButtonStyle());
-  empty_label_->setStyleSheet(AppTheme::PanelTitleStyle());
+  list_->setObjectName(QString::fromUtf8("recommendList"));
+  refresh_btn_->setObjectName(QString::fromUtf8("iconButton"));
+  upload_btn_->setObjectName(QString::fromUtf8("primaryButton"));
+  add_btn_->setObjectName(QString::fromUtf8("iconButton"));
+  empty_label_->setObjectName(QString::fromUtf8("captionLabel"));
   empty_label_->setWordWrap(true);
 
   QHBoxLayout* tools = new QHBoxLayout();
@@ -54,7 +52,7 @@ LibraryPane::LibraryPane(QWidget* parent)
   tools->addWidget(refresh_btn_);
 
   QVBoxLayout* root = new QVBoxLayout(this);
-  root->setContentsMargins(8, 8, 8, 8);
+  root->setContentsMargins(0, 0, 0, 0);
   root->setSpacing(8);
   root->addLayout(tools);
   root->addWidget(empty_label_);

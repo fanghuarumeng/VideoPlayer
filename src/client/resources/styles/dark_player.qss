@@ -1,0 +1,284 @@
+/* ===================================================================
+   Qt Style Sheet (QSS) - Dark Video Player Theme
+   Based on extracted Design Tokens from UI Spec
+   =================================================================== */
+
+/* -------------------------------------------------------------------
+   1. Global Defaults
+   ------------------------------------------------------------------- */
+QMainWindow, QWidget {
+    background-color: #353A40;
+    color: #FFFFFF;
+    font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft JhengHei", sans-serif;
+    font-size: 13px;
+    border: none;
+}
+
+QStatusBar {
+    background-color: #2E3338;
+    color: #B0B3B8;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+QSplitter::handle {
+    background: transparent;
+    width: 8px;
+}
+
+QToolTip {
+    background-color: #2E3338;
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* -------------------------------------------------------------------
+   2. Typography & Labels
+   ------------------------------------------------------------------- */
+QLabel#h1Label {
+    font-size: 28px;
+    font-weight: normal;
+    color: #FFFFFF;
+    background: transparent;
+}
+
+QLabel#videoTitleLabel {
+    font-size: 20px;
+    font-weight: bold;
+    color: #FFFFFF;
+    background: transparent;
+}
+
+QLabel#itemTitleLabel {
+    font-size: 14px;
+    font-weight: normal;
+    color: #FFFFFF;
+    background: transparent;
+}
+
+QLabel#captionLabel, QLabel#viewsLabel {
+    font-size: 12px;
+    font-weight: 300;
+    color: #B0B3B8;
+    background: transparent;
+}
+
+QLabel#timestampLabel {
+    font-size: 12px;
+    color: #FFFFFF;
+    background: transparent;
+    padding: 0 5px;
+}
+
+QLabel#brandLabel {
+    font-size: 16px;
+    font-weight: bold;
+    color: #FFFFFF;
+    background: transparent;
+}
+
+/* -------------------------------------------------------------------
+   3. Progress Bar (QSlider) — BufferedSeekSlider paints itself;
+      kept for any stock QSlider fallback.
+   ------------------------------------------------------------------- */
+QSlider::groove:horizontal {
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.20);
+    border-radius: 2px;
+}
+
+QSlider::sub-page:horizontal {
+    height: 4px;
+    background-color: #5086FF;
+    border-radius: 2px;
+}
+
+QSlider::handle:horizontal {
+    background-color: #FFFFFF;
+    width: 12px;
+    height: 12px;
+    margin-top: -4px;
+    margin-bottom: -4px;
+    border-radius: 6px;
+}
+
+QSlider::handle:horizontal:hover {
+    background-color: #5086FF;
+}
+
+/* -------------------------------------------------------------------
+   4. Buttons
+   ------------------------------------------------------------------- */
+QPushButton#controlButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 0px;
+    padding: 4px;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+QPushButton#controlButton:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+}
+
+QPushButton#controlButton:pressed {
+    background-color: rgba(255, 255, 255, 0.20);
+}
+
+QPushButton#moreButton {
+    background-color: rgba(255, 255, 255, 0.20);
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: bold;
+    border: none;
+    border-radius: 0px;
+    min-height: 28px;
+    letter-spacing: 1px;
+}
+
+QPushButton#moreButton:hover {
+    background-color: rgba(255, 255, 255, 0.30);
+}
+
+QPushButton#moreButton:pressed {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+QPushButton#navButton {
+    background-color: transparent;
+    color: #B0B3B8;
+    border: none;
+    border-radius: 0px;
+    padding: 6px 12px;
+    min-height: 28px;
+}
+
+QPushButton#navButton:hover {
+    color: #FFFFFF;
+    background-color: rgba(255, 255, 255, 0.10);
+}
+
+QPushButton#navButton:checked {
+    color: #FFFFFF;
+    background-color: rgba(80, 134, 255, 0.25);
+    font-weight: 600;
+}
+
+QPushButton#iconButton {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 0px;
+    padding: 8px 14px;
+    min-height: 32px;
+}
+
+QPushButton#iconButton:hover {
+    background-color: rgba(255, 255, 255, 0.20);
+}
+
+QPushButton#primaryButton {
+    background-color: #5086FF;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 0px;
+    padding: 8px 16px;
+    min-height: 32px;
+    font-weight: 600;
+}
+
+QPushButton#primaryButton:hover {
+    background-color: #6A9AFF;
+}
+
+QPushButton#primaryButton:pressed {
+    background-color: #3F6FE0;
+}
+
+/* -------------------------------------------------------------------
+   5. Recommend / list views
+   ------------------------------------------------------------------- */
+QListWidget#recommendList, QListView#recommendList {
+    background-color: transparent;
+    border: none;
+    outline: none;
+}
+
+QListWidget#recommendList::item, QListView#recommendList::item {
+    background-color: transparent;
+    padding: 6px 0px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+QListWidget#recommendList::item:hover, QListView#recommendList::item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+QListWidget#recommendList::item:selected, QListView#recommendList::item:selected {
+    background-color: rgba(80, 134, 255, 0.20);
+}
+
+QListWidget, QListView {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    color: #FFFFFF;
+}
+
+QListWidget::item:hover, QListView::item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+QListWidget::item:selected, QListView::item:selected {
+    background-color: rgba(80, 134, 255, 0.20);
+}
+
+/* -------------------------------------------------------------------
+   6. Scrollbar
+   ------------------------------------------------------------------- */
+QScrollBar:vertical {
+    border: none;
+    background: transparent;
+    width: 6px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical {
+    background: rgba(255, 255, 255, 0.20);
+    min-height: 20px;
+    border-radius: 3px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: rgba(255, 255, 255, 0.40);
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* -------------------------------------------------------------------
+   7. App chrome extras
+   ------------------------------------------------------------------- */
+QFrame#videoChrome {
+    background-color: #1E2226;
+    border: none;
+}
+
+QFrame#metaPanel, QFrame#sidePanel, QFrame#topBar {
+    background-color: transparent;
+    border: none;
+}
+
+QLineEdit#searchField {
+    background-color: rgba(255, 255, 255, 0.10);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0px;
+    padding: 8px 12px;
+    selection-background-color: #5086FF;
+}
+
+QLineEdit#searchField:focus {
+    border: 1px solid #5086FF;
+}

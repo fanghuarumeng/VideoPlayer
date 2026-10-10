@@ -1,9 +1,10 @@
 #include "square_dance/client/playlist/PlaylistPane.h"
 
 #include "square_dance/client/elder_ui/AppIcons.h"
-#include "square_dance/client/elder_ui/AppTheme.h"
 
+#include <QAbstractItemView>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QList>
 #include <QListWidget>
 #include <QListWidgetItem>
@@ -14,6 +15,7 @@
 #include <QPixmap>
 #include <QPushButton>
 #include <QSize>
+#include <QSizePolicy>
 #include <QUrl>
 #include <QVBoxLayout>
 
@@ -24,30 +26,35 @@ PlaylistPane::PlaylistPane(PlaylistStore* store, QWidget* parent)
     : QWidget(parent),
       store_(store),
       list_(new QListWidget(this)),
-      clear_btn_(new QPushButton(QString::fromUtf8("清空播放列表"), this)),
+      clear_btn_(new QPushButton(QString::fromUtf8("清空"), this)),
       nam_(new QNetworkAccessManager(this)) {
+  list_->setObjectName(QString::fromUtf8("recommendList"));
   list_->setUniformItemSizes(true);
   list_->setIconSize(QSize(96, 54));
   list_->setSelectionMode(QAbstractItemView::SingleSelection);
   list_->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-  list_->setSpacing(4);
-  list_->setStyleSheet(AppTheme::ListPanelStyle());
+  list_->setSpacing(2);
 
-  clear_btn_->setStyleSheet(AppTheme::IconButtonStyle());
+  clear_btn_->setObjectName(QString::fromUtf8("moreButton"));
+  clear_btn_->setText(QString::fromUtf8("MORE"));
+  clear_btn_->setCursor(Qt::PointingHandCursor);
+  clear_btn_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+  QLabel* header = new QLabel(QString::fromUtf8("接下来"), this);
+  header->setObjectName(QString::fromUtf8("h1Label"));
 
   QVBoxLayout* root = new QVBoxLayout(this);
-  root->setContentsMargins(0, 0, 0, 0);
-  root->setSpacing(8);
+  root->setContentsMargins(16, 8, 16, 16);
+  root->setSpacing(14);
+  root->addWidget(header);
   root->addWidget(list_, 1);
-  root->addWidget(clear_btn_, 0, Qt::AlignLeft);
+  root->addWidget(clear_btn_);
 
   connect(clear_btn_, &QPushButton::clicked, this,
           &PlaylistPane::onClearClicked);
   connect(list_, &QListWidget::itemDoubleClicked, this,
           &PlaylistPane::onItemDoubleClicked);
 
-  // Always load thumbs for the current store snapshot (do not wait for a
-  // mergeFromVideo change — restart with unchanged URLs used to skip refresh).
   RebuildList();
 }
 
@@ -106,7 +113,7 @@ void PlaylistPane::RebuildList() {
     item->setData(Qt::UserRole + 1, pl.play_url);
     item->setData(Qt::UserRole + 2, pl.thumbnail_url);
     item->setToolTip(pl.title);
-    item->setSizeHint(QSize(0, 64));
+    item->setSizeHint(QSize(0, 68));
     list_->addItem(item);
   }
   if (store_->currentIndex() >= 0 &&

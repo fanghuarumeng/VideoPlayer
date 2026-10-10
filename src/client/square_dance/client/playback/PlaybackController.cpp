@@ -253,7 +253,10 @@ void PlaybackController::onVideoFrame(const QImage& frame, double /*pts_sec*/,
       has_presented_frame_ = true;
       player_widget_->setLoadingCoverVisible(false);
     }
+  } else if (!has_presented_frame_) {
+    has_presented_frame_ = true;
   }
+  emit videoFrameReady(frame);
 }
 
 void PlaybackController::onAudioSamples(const QByteArray& pcm,

@@ -9,7 +9,8 @@
 #include <QVector>
 
 class QLabel;
-class QTabWidget;
+class QPushButton;
+class QStackedWidget;
 class QWidget;
 
 namespace square_dance {
@@ -65,6 +66,10 @@ class ElderMainWindow : public QMainWindow {
   void onPlaybackProgressForHistory(double position_sec, double duration_sec);
   void onHistoryPlayRequested(const Video& video, qint64 position_ms);
   void SetStatusMessage(const QString& message);
+  void showPlayerPage();
+  void showLibraryPage();
+  void showHistoryPage();
+  void showSearchPage();
 
  private:
   bool SelectedSearchVideo(Video* out) const;
@@ -73,6 +78,8 @@ class ElderMainWindow : public QMainWindow {
   QString ResolveHistoryPath() const;
   void PlayVideo(const Video& video, qint64 seek_ms = -1);
   void RecordHistory(double position_sec, double duration_sec);
+  QWidget* WrapSecondaryPage(QWidget* body, const QString& title);
+  void SetNavChecked(QPushButton* active);
 
   ClientConfig config_;
   SearchBar* search_bar_;
@@ -80,7 +87,10 @@ class ElderMainWindow : public QMainWindow {
   PlayerPane* player_pane_;
   ConnectionStatusWidget* connection_status_;
   QLabel* status_label_;
-  QTabWidget* side_tabs_;
+  QStackedWidget* content_stack_;
+  QPushButton* nav_library_;
+  QPushButton* nav_history_;
+  QPushButton* nav_search_;
   PlaylistStore* playlist_store_;
   PlaylistPane* playlist_pane_;
   LibraryPane* library_pane_;

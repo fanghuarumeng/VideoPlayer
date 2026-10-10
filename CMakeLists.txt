@@ -153,7 +153,10 @@ if(BUILD_CLIENT)
   endif()
 
   set(CMAKE_AUTOMOC ON)
-  find_package(Qt5 REQUIRED COMPONENTS Widgets Network WebSockets Multimedia Test Svg)
+  set(CMAKE_AUTORCC ON)
+  find_package(Qt5 REQUIRED COMPONENTS
+    Widgets Network WebSockets Multimedia Test Svg
+    Qml Quick QuickControls2)
   include(cmake/ClientFFmpeg.cmake)
 
   set(SQUARE_DANCE_CLIENT_RESOURCES
@@ -188,6 +191,9 @@ if(BUILD_CLIENT)
     src/client/square_dance/client/library/UploadController.cpp
     src/client/square_dance/client/history/PlayHistoryStore.cpp
     src/client/square_dance/client/history/HistoryPane.cpp
+    src/client/square_dance/client/qml/VideoFrameItem.cpp
+    src/client/square_dance/client/qml/PlayerUiBridge.cpp
+    src/client/square_dance/client/qml/SecondaryPaneHost.cpp
     ${SQUARE_DANCE_CLIENT_RESOURCES}
   )
   target_include_directories(square_dance_client_lib PUBLIC
@@ -202,6 +208,9 @@ if(BUILD_CLIENT)
       Qt5::WebSockets
       Qt5::Multimedia
       Qt5::Svg
+      Qt5::Qml
+      Qt5::Quick
+      Qt5::QuickControls2
       square_dance_ffmpeg
   )
 

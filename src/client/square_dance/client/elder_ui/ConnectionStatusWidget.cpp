@@ -18,20 +18,20 @@ void ConnectionStatusWidget::setConnected(bool connected) {
     setText(QString::fromUtf8("Live"));
     setStyleSheet(QString::fromUtf8(
         "QLabel {"
-        "  color: %1; background: #ecfdf5;"
+        "  color: %1; background: #16301f;"
         "  border: 1px solid %1; border-radius: 14px;"
         "  padding: 4px 12px; font-weight: 600;"
         "}")
-        .arg(AppTheme::Success()));
+                      .arg(AppTheme::Success()));
   } else {
     setText(QString::fromUtf8("Offline"));
     setStyleSheet(QString::fromUtf8(
         "QLabel {"
-        "  color: %1; background: #fef2f2;"
+        "  color: %1; background: #3a1a1a;"
         "  border: 1px solid %1; border-radius: 14px;"
         "  padding: 4px 12px; font-weight: 600;"
         "}")
-        .arg(AppTheme::Danger()));
+                      .arg(AppTheme::Danger()));
   }
 }
 

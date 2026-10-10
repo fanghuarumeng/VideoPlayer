@@ -27,9 +27,9 @@ void VideoListDelegate::paint(QPainter* painter,
   painter->save();
   painter->setRenderHint(QPainter::Antialiasing, true);
   if (option.state & QStyle::State_Selected) {
-    painter->fillRect(option.rect, QColor(AppTheme::Accent()));
+    painter->fillRect(option.rect, QColor(80, 134, 255, 51));
   } else if (option.state & QStyle::State_MouseOver) {
-    painter->fillRect(option.rect, QColor(AppTheme::ListHover()));
+    painter->fillRect(option.rect, QColor(255, 255, 255, 20));
   } else {
     painter->fillRect(option.rect, Qt::transparent);
   }

@@ -30,9 +30,9 @@
 #include <QPalette>
 #include <QPushButton>
 #include <QSplitter>
+#include <QStackedWidget>
 #include <QStandardPaths>
 #include <QStatusBar>
-#include <QTabWidget>
 #include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -49,7 +49,10 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
       player_pane_(NULL),
       connection_status_(NULL),
       status_label_(NULL),
-      side_tabs_(NULL),
+      content_stack_(NULL),
+      nav_library_(NULL),
+      nav_history_(NULL),
+      nav_search_(NULL),
       playlist_store_(NULL),
       playlist_pane_(NULL),
       library_pane_(NULL),
@@ -73,10 +76,10 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
 
   setStyleSheet(AppTheme::GlobalStylesheet());
   QPalette pal = palette();
-  pal.setColor(QPalette::Window, QColor(AppTheme::WindowBg()));
-  pal.setColor(QPalette::Base, QColor(AppTheme::Surface()));
-  pal.setColor(QPalette::Text, QColor(AppTheme::TextPrimary()));
-  pal.setColor(QPalette::WindowText, QColor(AppTheme::TextPrimary()));
+  pal.setColor(QPalette::Window, QColor(0x35, 0x3A, 0x40));
+  pal.setColor(QPalette::Base, QColor(0x2E, 0x33, 0x38));
+  pal.setColor(QPalette::Text, QColor(0xFF, 0xFF, 0xFF));
+  pal.setColor(QPalette::WindowText, QColor(0xFF, 0xFF, 0xFF));
   setPalette(pal);
   setAutoFillBackground(true);
 
@@ -85,15 +88,23 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
   playlist_store_->load(&pl_err);
 
   QLabel* logo = new QLabel(this);
-  logo->setPixmap(AppIcons::Logo().pixmap(36, 36));
+  logo->setPixmap(AppIcons::Logo().pixmap(28, 28));
   QLabel* brand = new QLabel(QString::fromUtf8("Video Player"), this);
-  brand->setFont(AppTheme::TitleFont());
-  brand->setStyleSheet(AppTheme::BrandTitleStyle());
-  QLabel* tagline =
-      new QLabel(QString::fromUtf8("视频库 · 播放列表 · 历史 · 搜索"), this);
-  tagline->setFont(AppTheme::CaptionFont());
-  tagline->setStyleSheet(AppTheme::PanelTitleStyle());
+  brand->setObjectName(QString::fromUtf8("brandLabel"));
   connection_status_ = new ConnectionStatusWidget(this);
+
+  nav_library_ = new QPushButton(QString::fromUtf8("视频库"), this);
+  nav_history_ = new QPushButton(QString::fromUtf8("历史"), this);
+  nav_search_ = new QPushButton(QString::fromUtf8("搜索"), this);
+  nav_library_->setObjectName(QString::fromUtf8("navButton"));
+  nav_history_->setObjectName(QString::fromUtf8("navButton"));
+  nav_search_->setObjectName(QString::fromUtf8("navButton"));
+  nav_library_->setCheckable(true);
+  nav_history_->setCheckable(true);
+  nav_search_->setCheckable(true);
+  nav_library_->setCursor(Qt::PointingHandCursor);
+  nav_history_->setCursor(Qt::PointingHandCursor);
+  nav_search_->setCursor(Qt::PointingHandCursor);
 
   library_pane_ = new LibraryPane(this);
   playlist_pane_ = new PlaylistPane(playlist_store_, this);
@@ -104,67 +115,81 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
   result_list_->setCatalogModel(model_);
   QPushButton* add_pl_btn =
       new QPushButton(QString::fromUtf8("加入播放列表"), this);
-  add_pl_btn->setStyleSheet(AppTheme::IconButtonStyle());
-  QWidget* search_page = new QWidget(this);
-  QVBoxLayout* search_layout = new QVBoxLayout(search_page);
+  add_pl_btn->setObjectName(QString::fromUtf8("iconButton"));
+  QWidget* search_body = new QWidget(this);
+  QVBoxLayout* search_layout = new QVBoxLayout(search_body);
   search_layout->setContentsMargins(8, 8, 8, 8);
   search_layout->setSpacing(8);
   search_layout->addWidget(search_bar_);
   search_layout->addWidget(result_list_, 1);
   search_layout->addWidget(add_pl_btn, 0, Qt::AlignLeft);
 
-  side_tabs_ = new QTabWidget(this);
-  side_tabs_->addTab(library_pane_, QString::fromUtf8("视频库"));
-  side_tabs_->addTab(playlist_pane_, QString::fromUtf8("播放列表"));
-  side_tabs_->addTab(history_pane_, QString::fromUtf8("历史"));
-  side_tabs_->addTab(search_page, QString::fromUtf8("搜索"));
-  side_tabs_->setCurrentIndex(0);
-
-  QFrame* sidebar = new QFrame(this);
-  sidebar->setStyleSheet(QString::fromUtf8(
-      "QFrame { background: %1; border: 1px solid %2; border-radius: 12px; }")
-                             .arg(AppTheme::Surface(), AppTheme::Border()));
-  QVBoxLayout* sidebar_layout = new QVBoxLayout(sidebar);
-  sidebar_layout->setContentsMargins(8, 8, 8, 8);
-  sidebar_layout->addWidget(side_tabs_, 1);
-
   player_pane_ = new PlayerPane(this);
   playback_->setPlayerWidget(player_pane_->playerWidget());
 
+  content_stack_ = new QStackedWidget(this);
+  content_stack_->addWidget(player_pane_);  // 0
+  content_stack_->addWidget(
+      WrapSecondaryPage(library_pane_, QString::fromUtf8("视频库")));  // 1
+  content_stack_->addWidget(
+      WrapSecondaryPage(history_pane_, QString::fromUtf8("历史")));  // 2
+  content_stack_->addWidget(
+      WrapSecondaryPage(search_body, QString::fromUtf8("搜索")));  // 3
+  content_stack_->setCurrentIndex(0);
+
+  QFrame* up_next = new QFrame(this);
+  up_next->setObjectName(QString::fromUtf8("sidePanel"));
+  up_next->setAttribute(Qt::WA_StyledBackground, true);
+  up_next->setMinimumWidth(300);
+  up_next->setMaximumWidth(380);
+  QVBoxLayout* up_next_layout = new QVBoxLayout(up_next);
+  up_next_layout->setContentsMargins(0, 0, 0, 0);
+  up_next_layout->addWidget(playlist_pane_, 1);
+
   status_label_ =
       new QLabel(QString::fromUtf8("正在加载视频库…"), this);
-  status_label_->setFont(AppTheme::CaptionFont());
+  status_label_->setObjectName(QString::fromUtf8("captionLabel"));
   statusBar()->addWidget(status_label_, 1);
 
-  QHBoxLayout* brand_row = new QHBoxLayout();
-  brand_row->setSpacing(10);
+  QFrame* top_bar = new QFrame(this);
+  top_bar->setObjectName(QString::fromUtf8("topBar"));
+  top_bar->setAttribute(Qt::WA_StyledBackground, true);
+  QHBoxLayout* brand_row = new QHBoxLayout(top_bar);
+  brand_row->setContentsMargins(8, 4, 8, 4);
+  brand_row->setSpacing(12);
   brand_row->addWidget(logo);
-  QVBoxLayout* brand_text = new QVBoxLayout();
-  brand_text->setSpacing(0);
-  brand_text->addWidget(brand);
-  brand_text->addWidget(tagline);
-  brand_row->addLayout(brand_text);
+  brand_row->addWidget(brand);
+  brand_row->addSpacing(16);
+  brand_row->addWidget(nav_library_);
+  brand_row->addWidget(nav_history_);
+  brand_row->addWidget(nav_search_);
   brand_row->addStretch(1);
   brand_row->addWidget(connection_status_, 0, Qt::AlignVCenter);
 
   QSplitter* split = new QSplitter(Qt::Horizontal, this);
-  split->addWidget(sidebar);
-  split->addWidget(player_pane_);
-  split->setStretchFactor(0, 0);
-  split->setStretchFactor(1, 1);
+  split->addWidget(content_stack_);
+  split->addWidget(up_next);
+  split->setStretchFactor(0, 1);
+  split->setStretchFactor(1, 0);
   split->setChildrenCollapsible(false);
   QList<int> sizes;
-  sizes << 420 << 860;
+  sizes << 900 << 340;
   split->setSizes(sizes);
 
   QWidget* central = new QWidget(this);
-  central->setAutoFillBackground(true);
   QVBoxLayout* root = new QVBoxLayout(central);
-  root->setContentsMargins(16, 14, 16, 8);
+  root->setContentsMargins(20, 16, 20, 12);
   root->setSpacing(12);
-  root->addLayout(brand_row);
+  root->addWidget(top_bar);
   root->addWidget(split, 1);
   setCentralWidget(central);
+
+  connect(nav_library_, &QPushButton::clicked, this,
+          &ElderMainWindow::showLibraryPage);
+  connect(nav_history_, &QPushButton::clicked, this,
+          &ElderMainWindow::showHistoryPage);
+  connect(nav_search_, &QPushButton::clicked, this,
+          &ElderMainWindow::showSearchPage);
 
   connect(result_list_, &QListView::doubleClicked, this,
           &ElderMainWindow::onPlayClicked);
@@ -267,9 +292,62 @@ Video ElderMainWindow::VideoFromPlaylistItem(const PlaylistItem& item) const {
   return video;
 }
 
+QWidget* ElderMainWindow::WrapSecondaryPage(QWidget* body,
+                                            const QString& title) {
+  QWidget* page = new QWidget(this);
+  QVBoxLayout* layout = new QVBoxLayout(page);
+  layout->setContentsMargins(8, 4, 16, 8);
+  layout->setSpacing(8);
+
+  QPushButton* back = new QPushButton(QString::fromUtf8("← 返回播放"), page);
+  back->setObjectName(QString::fromUtf8("navButton"));
+  back->setCursor(Qt::PointingHandCursor);
+  QLabel* heading = new QLabel(title, page);
+  heading->setObjectName(QString::fromUtf8("videoTitleLabel"));
+
+  QHBoxLayout* head = new QHBoxLayout();
+  head->setSpacing(12);
+  head->addWidget(back);
+  head->addWidget(heading);
+  head->addStretch(1);
+  layout->addLayout(head);
+  layout->addWidget(body, 1);
+
+  connect(back, &QPushButton::clicked, this, &ElderMainWindow::showPlayerPage);
+  return page;
+}
+
+void ElderMainWindow::SetNavChecked(QPushButton* active) {
+  nav_library_->setChecked(active == nav_library_);
+  nav_history_->setChecked(active == nav_history_);
+  nav_search_->setChecked(active == nav_search_);
+}
+
+void ElderMainWindow::showPlayerPage() {
+  content_stack_->setCurrentIndex(0);
+  SetNavChecked(NULL);
+}
+
+void ElderMainWindow::showLibraryPage() {
+  content_stack_->setCurrentIndex(1);
+  SetNavChecked(nav_library_);
+}
+
+void ElderMainWindow::showHistoryPage() {
+  content_stack_->setCurrentIndex(2);
+  SetNavChecked(nav_history_);
+}
+
+void ElderMainWindow::showSearchPage() {
+  content_stack_->setCurrentIndex(3);
+  SetNavChecked(nav_search_);
+}
+
 void ElderMainWindow::PlayVideo(const Video& video, qint64 seek_ms) {
   current_video_ = video;
   last_history_save_ms_ = 0;
+  player_pane_->setTitle(video.title);
+  showPlayerPage();
   SetStatusMessage(QString::fromUtf8("正在播放：") + video.title);
   playback_->play(video);
   RecordHistory(seek_ms > 0 ? (seek_ms / 1000.0) : 0.0, 0.0);
@@ -422,27 +500,33 @@ void ElderMainWindow::onSearchFailed(const QString& error) {
 }
 
 void ElderMainWindow::onPlayClicked() {
-  if (side_tabs_->currentWidget() == playlist_pane_) {
-    PlaylistItem item;
-    if (playlist_pane_->selectedItem(&item)) {
-      onPlaylistPlayRequested(item);
-      return;
-    }
-  }
-  if (side_tabs_->currentWidget() == library_pane_) {
+  const int page = content_stack_->currentIndex();
+  if (page == 1) {
     const QVector<Video> selected = library_pane_->selectedVideos();
     if (!selected.isEmpty()) {
       onLibraryPlayRequested(selected.first());
       return;
     }
   }
-  Video video;
-  if (!SelectedSearchVideo(&video)) {
-    SetStatusMessage(QString::fromUtf8("请先选择一个视频"));
+  if (page == 3) {
+    Video video;
+    if (SelectedSearchVideo(&video)) {
+      playing_from_playlist_ = false;
+      PlayVideo(video);
+      return;
+    }
+  }
+  PlaylistItem item;
+  if (playlist_pane_->selectedItem(&item)) {
+    onPlaylistPlayRequested(item);
     return;
   }
-  playing_from_playlist_ = false;
-  PlayVideo(video);
+  if (current_video_.id != 0 || !current_video_.play_url.isEmpty()) {
+    playing_from_playlist_ = false;
+    PlayVideo(current_video_);
+    return;
+  }
+  SetStatusMessage(QString::fromUtf8("请先选择一个视频"));
 }
 
 void ElderMainWindow::onPlaylistPlayRequested(const PlaylistItem& item) {
@@ -495,18 +579,20 @@ void ElderMainWindow::onStopClicked() {
 }
 
 void ElderMainWindow::onDownloadClicked() {
-  Video video;
-  if (!SelectedSearchVideo(&video)) {
-    PlaylistItem item;
-    if (playlist_pane_->selectedItem(&item)) {
-      video = VideoFromPlaylistItem(item);
-    } else {
-      const QVector<Video> selected = library_pane_->selectedVideos();
-      if (!selected.isEmpty()) {
-        video = selected.first();
+  Video video = current_video_;
+  if (video.id == 0 && video.play_url.isEmpty()) {
+    if (!SelectedSearchVideo(&video)) {
+      PlaylistItem item;
+      if (playlist_pane_->selectedItem(&item)) {
+        video = VideoFromPlaylistItem(item);
       } else {
-        SetStatusMessage(QString::fromUtf8("请先选择一个视频"));
-        return;
+        const QVector<Video> selected = library_pane_->selectedVideos();
+        if (!selected.isEmpty()) {
+          video = selected.first();
+        } else {
+          SetStatusMessage(QString::fromUtf8("请先选择一个视频"));
+          return;
+        }
       }
     }
   }

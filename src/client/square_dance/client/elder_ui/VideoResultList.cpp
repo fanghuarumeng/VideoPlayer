@@ -1,7 +1,6 @@
 #include "square_dance/client/elder_ui/VideoResultList.h"
 
 #include "square_dance/client/api/CatalogModel.h"
-#include "square_dance/client/elder_ui/AppTheme.h"
 #include "square_dance/client/elder_ui/VideoListDelegate.h"
 
 #include <QAbstractItemView>
@@ -10,8 +9,7 @@ namespace square_dance {
 namespace client {
 
 VideoResultList::VideoResultList(QWidget* parent) : QListView(parent) {
-  setFont(AppTheme::UiFont());
-  setStyleSheet(AppTheme::ListPanelStyle());
+  setObjectName(QString::fromUtf8("recommendList"));
   setItemDelegate(new VideoListDelegate(this));
   setUniformItemSizes(true);
   setSelectionMode(QAbstractItemView::SingleSelection);
