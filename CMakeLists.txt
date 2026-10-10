@@ -184,6 +184,7 @@ if(BUILD_CLIENT)
     src/client/square_dance/client/playlist/PlaylistModel.cpp
     src/client/square_dance/client/playlist/PlaylistPane.cpp
     src/client/square_dance/client/library/LibraryPane.cpp
+    src/client/square_dance/client/library/UploadController.cpp
     ${SQUARE_DANCE_CLIENT_RESOURCES}
   )
   target_include_directories(square_dance_client_lib PUBLIC

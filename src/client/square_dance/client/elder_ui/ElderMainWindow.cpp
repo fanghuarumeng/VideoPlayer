@@ -12,12 +12,14 @@
 #include "square_dance/client/elder_ui/SearchBar.h"
 #include "square_dance/client/elder_ui/VideoResultList.h"
 #include "square_dance/client/library/LibraryPane.h"
+#include "square_dance/client/library/UploadController.h"
 #include "square_dance/client/playback/PlaybackController.h"
 #include "square_dance/client/playback/VideoPlayerWidget.h"
 #include "square_dance/client/playlist/PlaylistPane.h"
 #include "square_dance/client/playlist/PlaylistStore.h"
 
 #include <QColor>
+#include <QFileDialog>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -47,6 +49,7 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
       playlist_store_(NULL),
       playlist_pane_(NULL),
       library_pane_(NULL),
+      upload_(NULL),
       history_placeholder_(NULL),
       model_(new CatalogModel(this)),
       catalog_(new CatalogClient(config.http_base_url, this)),
@@ -54,6 +57,7 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
       playback_(new PlaybackController(this)),
       downloads_(new DownloadService(config.download_dir, this)),
       playing_from_playlist_(false) {
+  upload_ = new UploadController(config.http_base_url, 2, this);
   setWindowTitle(QString::fromUtf8("Square Dance"));
   setWindowIcon(AppIcons::Logo());
   resize(1280, 800);
@@ -210,10 +214,21 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
           &ElderMainWindow::onPlaylistPlayRequested);
   connect(library_pane_, &LibraryPane::refreshRequested, this,
           &ElderMainWindow::onLibraryRefresh);
+  connect(library_pane_, &LibraryPane::uploadRequested, this,
+          &ElderMainWindow::onLibraryUpload);
   connect(library_pane_, &LibraryPane::addToPlaylistRequested, this,
           &ElderMainWindow::onLibraryAddToPlaylist);
   connect(library_pane_, &LibraryPane::playRequested, this,
           &ElderMainWindow::onLibraryPlayRequested);
+  connect(upload_, &UploadController::statusMessage, this,
+          &ElderMainWindow::SetStatusMessage);
+  connect(upload_, &UploadController::uploadFinished, this,
+          &ElderMainWindow::onUploadFinished);
+  connect(upload_, &UploadController::uploadFailed, this,
+          [this](const QString& path, const QString& error) {
+            SetStatusMessage(QString::fromUtf8("上传失败：") + path +
+                             QString::fromUtf8(" — ") + error);
+          });
 
   push_->connectToServer(QUrl(config_.ws_url));
   catalog_->listVideos(200, 0);
@@ -261,6 +276,21 @@ void ElderMainWindow::SetStatusMessage(const QString& message) {
 void ElderMainWindow::onLibraryRefresh() {
   SetStatusMessage(QString::fromUtf8("正在刷新视频库…"));
   catalog_->listVideos(200, 0);
+}
+
+void ElderMainWindow::onLibraryUpload() {
+  const QStringList paths = QFileDialog::getOpenFileNames(
+      this, QString::fromUtf8("选择要上传的视频"), QString(),
+      QString::fromUtf8(
+          "Videos (*.mp4 *.mkv *.webm *.avi *.mov *.mxf);;All (*.*)"));
+  if (paths.isEmpty()) {
+    return;
+  }
+  upload_->enqueueFiles(paths);
+}
+
+void ElderMainWindow::onUploadFinished(const Video& video) {
+  library_pane_->upsertVideo(video);
 }
 
 void ElderMainWindow::onListFinished(const QVector<Video>& videos) {

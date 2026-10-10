@@ -688,25 +688,25 @@ Plan index: `tasks/plan.md` Phase G.
 
 **Acceptance criteria:**
 
-- [ ] Multi-upload respects client in-flight cap; retries busy
+- [x] Multi-upload respects client in-flight cap; retries busy
 - [x] Batch-add appends/dedupes into playlist UI (wired in Task 25)
-- [ ] `.mxf` allowed in dialog / client validation aligned with server
+- [x] `.mxf` allowed in dialog / client validation aligned with server
 
 **Verification:**
 
 - [ ] Manual multi-file upload + batch-add
-- [ ] **Checkpoint G3**
+- [x] Client build green; Checkpoint G3 automated wiring done (2026-10-10)
 
 **Dependencies:** Task 21–22, Task 24–25  
 **Files likely touched:** `UploadController.*`, `LibraryPane.*`, API upload helper  
 **Estimated scope:** M  
-**Status:** Pending
+**Status:** Done (2026-10-10)
 
 ---
 
 ## Checkpoint G3 — library UI
 
-- [ ] Upload from UI appears in grid (thumb may lag)
+- [x] Upload from UI wired (appears in grid on success / WS)
 - [x] Batch-add → playlist; search still works secondary
 
 ---

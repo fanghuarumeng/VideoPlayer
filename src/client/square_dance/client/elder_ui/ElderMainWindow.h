@@ -20,6 +20,7 @@ class CatalogModel;
 class ConnectionStatusWidget;
 class DownloadService;
 class LibraryPane;
+class UploadController;
 class PlaybackController;
 class PlayerPane;
 class PlaylistPane;
@@ -53,8 +54,10 @@ class ElderMainWindow : public QMainWindow {
   void onPlaybackFinished();
   void onAddSearchToPlaylist();
   void onLibraryRefresh();
+  void onLibraryUpload();
   void onLibraryAddToPlaylist(const QVector<Video>& videos);
   void onLibraryPlayRequested(const Video& video);
+  void onUploadFinished(const Video& video);
   void onVideoUpserted(const Video& video);
   void onVideoRemoved(qint64 id);
   void SetStatusMessage(const QString& message);
@@ -75,6 +78,7 @@ class ElderMainWindow : public QMainWindow {
   PlaylistStore* playlist_store_;
   PlaylistPane* playlist_pane_;
   LibraryPane* library_pane_;
+  UploadController* upload_;
   QWidget* history_placeholder_;
 
   CatalogModel* model_;
