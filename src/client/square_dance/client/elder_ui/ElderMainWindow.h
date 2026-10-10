@@ -2,12 +2,14 @@
 
 #include "square_dance/client/ClientConfig.h"
 #include "square_dance/client/api/Video.h"
+#include "square_dance/client/playlist/PlaylistStore.h"
 
 #include <QMainWindow>
 #include <QString>
 #include <QVector>
 
 class QLabel;
+class QTabWidget;
 
 namespace square_dance {
 namespace client {
@@ -18,6 +20,8 @@ class ConnectionStatusWidget;
 class DownloadService;
 class PlaybackController;
 class PlayerPane;
+class PlaylistPane;
+class PlaylistStore;
 class PushClient;
 class SearchBar;
 class VideoResultList;
@@ -41,10 +45,16 @@ class ElderMainWindow : public QMainWindow {
   void onDownloadFinished(qint64 video_id, const QString& local_path);
   void onDownloadError(qint64 video_id, const QString& message);
   void onConnectionChanged(bool connected);
+  void onPlaylistPlayRequested(const PlaylistItem& item);
+  void onPlaybackFinished();
+  void onAddSearchToPlaylist();
   void SetStatusMessage(const QString& message);
 
  private:
-  bool SelectedVideo(Video* out) const;
+  bool SelectedSearchVideo(Video* out) const;
+  Video VideoFromPlaylistItem(const PlaylistItem& item) const;
+  QString ResolvePlaylistPath() const;
+  void PlayVideo(const Video& video);
 
   ClientConfig config_;
   SearchBar* search_bar_;
@@ -52,6 +62,9 @@ class ElderMainWindow : public QMainWindow {
   PlayerPane* player_pane_;
   ConnectionStatusWidget* connection_status_;
   QLabel* status_label_;
+  QTabWidget* side_tabs_;
+  PlaylistStore* playlist_store_;
+  PlaylistPane* playlist_pane_;
 
   CatalogModel* model_;
   CatalogClient* catalog_;
@@ -59,6 +72,7 @@ class ElderMainWindow : public QMainWindow {
   PlaybackController* playback_;
   DownloadService* downloads_;
   QString current_query_;
+  bool playing_from_playlist_;
 };
 
 }  // namespace client

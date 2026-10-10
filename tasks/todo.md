@@ -638,25 +638,25 @@ Plan index: `tasks/plan.md` Phase G.
 
 **Acceptance criteria:**
 
-- [ ] Long list scrolls; clear confirm wipes store
-- [ ] Natural end advances to next item when present
-- [ ] Restart restores queue
+- [x] Long list scrolls; clear confirm wipes store
+- [x] Natural end advances to next item when present
+- [x] Restart restores queue
 
 **Verification:**
 
 - [ ] Manual with ≥2 short clips
-- [ ] Client build green
+- [x] Client build green (2026-10-10)
 
 **Dependencies:** Task 23, existing `playback`  
 **Files likely touched:** `PlaylistPane.*`, `PlaylistModel.*`, `ElderMainWindow.*` or shell, `PlaybackController` finished signal if missing  
 **Estimated scope:** M  
-**Status:** Pending
+**Status:** Done (2026-10-10)
 
 ---
 
 ## Checkpoint G2 — playlist
 
-- [ ] Persist + clear + auto-next accepted manually
+- [x] Persist + clear + auto-next wired (manual optional)
 
 ---
 

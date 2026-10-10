@@ -274,6 +274,7 @@ void PlaybackController::onEngineEnded() {
   }
   UpdateHint(QString::fromUtf8("播放结束。可重新选择视频播放。"));
   emit statusMessage(QString::fromUtf8("播放结束"));
+  emit playbackFinished();
 }
 
 }  // namespace client

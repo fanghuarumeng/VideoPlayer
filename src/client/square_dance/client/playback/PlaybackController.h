@@ -35,6 +35,7 @@ class PlaybackController : public QObject {
   void errorOccurred(const QString& message);
   void statusMessage(const QString& message);
   void playbackProgress(double position_sec, double duration_sec);
+  void playbackFinished();
 
  public slots:
   void setScrubbing(bool scrubbing);

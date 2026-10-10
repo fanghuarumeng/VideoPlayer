@@ -13,15 +13,20 @@
 #include "square_dance/client/elder_ui/VideoResultList.h"
 #include "square_dance/client/playback/PlaybackController.h"
 #include "square_dance/client/playback/VideoPlayerWidget.h"
+#include "square_dance/client/playlist/PlaylistPane.h"
+#include "square_dance/client/playlist/PlaylistStore.h"
 
 #include <QColor>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPalette>
 #include <QListView>
+#include <QPalette>
+#include <QPushButton>
 #include <QSplitter>
+#include <QStandardPaths>
 #include <QStatusBar>
+#include <QTabWidget>
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -37,11 +42,15 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
       player_pane_(NULL),
       connection_status_(NULL),
       status_label_(NULL),
+      side_tabs_(NULL),
+      playlist_store_(NULL),
+      playlist_pane_(NULL),
       model_(new CatalogModel(this)),
       catalog_(new CatalogClient(config.http_base_url, this)),
       push_(new PushClient(this)),
       playback_(new PlaybackController(this)),
-      downloads_(new DownloadService(config.download_dir, this)) {
+      downloads_(new DownloadService(config.download_dir, this)),
+      playing_from_playlist_(false) {
   setWindowTitle(QString::fromUtf8("Square Dance"));
   setWindowIcon(AppIcons::Logo());
   resize(1280, 800);
@@ -55,6 +64,10 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
   setPalette(pal);
   setAutoFillBackground(true);
 
+  playlist_store_ = new PlaylistStore(ResolvePlaylistPath());
+  QString pl_err;
+  playlist_store_->load(&pl_err);
+
   QLabel* logo = new QLabel(this);
   logo->setPixmap(AppIcons::Logo().pixmap(36, 36));
 
@@ -62,7 +75,8 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
   brand->setFont(AppTheme::TitleFont());
   brand->setStyleSheet(AppTheme::BrandTitleStyle());
 
-  QLabel* tagline = new QLabel(QString::fromUtf8("视频目录 · 播放 · 下载"), this);
+  QLabel* tagline =
+      new QLabel(QString::fromUtf8("视频库 · 播放列表 · 播放"), this);
   tagline->setFont(AppTheme::CaptionFont());
   tagline->setStyleSheet(AppTheme::PanelTitleStyle());
 
@@ -72,14 +86,36 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
   result_list_->setCatalogModel(model_);
   result_list_->setMinimumWidth(280);
 
-  QLabel* library_title = new QLabel(QString::fromUtf8("媒体库"), this);
-  library_title->setFont(AppTheme::UiFont());
-  library_title->setStyleSheet(AppTheme::PanelTitleStyle());
+  QPushButton* add_pl_btn =
+      new QPushButton(QString::fromUtf8("加入播放列表"), this);
+  add_pl_btn->setStyleSheet(AppTheme::IconButtonStyle());
+
+  QWidget* search_page = new QWidget(this);
+  QVBoxLayout* search_layout = new QVBoxLayout(search_page);
+  search_layout->setContentsMargins(8, 8, 8, 8);
+  search_layout->setSpacing(8);
+  search_layout->addWidget(search_bar_);
+  search_layout->addWidget(result_list_, 1);
+  search_layout->addWidget(add_pl_btn, 0, Qt::AlignLeft);
+
+  playlist_pane_ = new PlaylistPane(playlist_store_, this);
+
+  side_tabs_ = new QTabWidget(this);
+  side_tabs_->addTab(search_page, QString::fromUtf8("搜索"));
+  side_tabs_->addTab(playlist_pane_, QString::fromUtf8("播放列表"));
+
+  QFrame* sidebar = new QFrame(this);
+  sidebar->setStyleSheet(QString::fromUtf8(
+      "QFrame { background: %1; border: 1px solid %2; border-radius: 12px; }")
+                             .arg(AppTheme::Surface(), AppTheme::Border()));
+  QVBoxLayout* sidebar_layout = new QVBoxLayout(sidebar);
+  sidebar_layout->setContentsMargins(8, 8, 8, 8);
+  sidebar_layout->addWidget(side_tabs_, 1);
 
   player_pane_ = new PlayerPane(this);
   playback_->setPlayerWidget(player_pane_->playerWidget());
 
-  status_label_ = new QLabel(QString::fromUtf8("输入关键词并搜索"), this);
+  status_label_ = new QLabel(QString::fromUtf8("搜索视频或打开播放列表"), this);
   status_label_->setFont(AppTheme::CaptionFont());
   statusBar()->addWidget(status_label_, 1);
 
@@ -94,17 +130,6 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
   brand_row->addStretch(1);
   brand_row->addWidget(connection_status_, 0, Qt::AlignVCenter);
 
-  QFrame* sidebar = new QFrame(this);
-  sidebar->setStyleSheet(QString::fromUtf8(
-      "QFrame { background: %1; border: 1px solid %2; border-radius: 12px; }")
-                             .arg(AppTheme::Surface(), AppTheme::Border()));
-  QVBoxLayout* sidebar_layout = new QVBoxLayout(sidebar);
-  sidebar_layout->setContentsMargins(12, 12, 12, 12);
-  sidebar_layout->setSpacing(10);
-  sidebar_layout->addWidget(library_title);
-  sidebar_layout->addWidget(search_bar_);
-  sidebar_layout->addWidget(result_list_, 1);
-
   QSplitter* split = new QSplitter(Qt::Horizontal, this);
   split->addWidget(sidebar);
   split->addWidget(player_pane_);
@@ -113,7 +138,7 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
   split->setChildrenCollapsible(false);
   split->setHandleWidth(1);
   QList<int> sizes;
-  sizes << 360 << 900;
+  sizes << 380 << 900;
   split->setSizes(sizes);
 
   QWidget* central = new QWidget(this);
@@ -129,6 +154,8 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
           &ElderMainWindow::onPlayClicked);
   connect(search_bar_, &SearchBar::searchRequested, this,
           &ElderMainWindow::onSearchRequested);
+  connect(add_pl_btn, &QPushButton::clicked, this,
+          &ElderMainWindow::onAddSearchToPlaylist);
   connect(catalog_, &CatalogClient::searchFinished, this,
           &ElderMainWindow::onSearchFinished);
   connect(catalog_, &CatalogClient::searchFailed, this,
@@ -153,6 +180,8 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
           &ElderMainWindow::SetStatusMessage);
   connect(playback_, &PlaybackController::playbackProgress, player_pane_,
           &PlayerPane::setPlaybackProgress);
+  connect(playback_, &PlaybackController::playbackFinished, this,
+          &ElderMainWindow::onPlaybackFinished);
   connect(player_pane_, &PlayerPane::seekRequested, playback_,
           &PlaybackController::seekTo);
   connect(player_pane_, &PlayerPane::scrubbingChanged, playback_,
@@ -163,11 +192,36 @@ ElderMainWindow::ElderMainWindow(const ClientConfig& config, QWidget* parent)
           &ElderMainWindow::onDownloadFinished);
   connect(downloads_, &DownloadService::errorOccurred, this,
           &ElderMainWindow::onDownloadError);
+  connect(playlist_pane_, &PlaylistPane::playRequested, this,
+          &ElderMainWindow::onPlaylistPlayRequested);
 
   push_->connectToServer(QUrl(config_.ws_url));
 }
 
-bool ElderMainWindow::SelectedVideo(Video* out) const {
+QString ElderMainWindow::ResolvePlaylistPath() const {
+  if (!config_.playlist_path.isEmpty()) {
+    return config_.playlist_path;
+  }
+  return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) +
+         QString::fromUtf8("/playlist.json");
+}
+
+Video ElderMainWindow::VideoFromPlaylistItem(const PlaylistItem& item) const {
+  Video video;
+  video.id = item.id;
+  video.title = item.title;
+  video.play_url = item.play_url;
+  video.thumbnail_url = item.thumbnail_url;
+  video.source_type = QString::fromUtf8("playlist");
+  return video;
+}
+
+void ElderMainWindow::PlayVideo(const Video& video) {
+  SetStatusMessage(QString::fromUtf8("正在播放：") + video.title);
+  playback_->play(video);
+}
+
+bool ElderMainWindow::SelectedSearchVideo(Video* out) const {
   if (out == NULL) {
     return false;
   }
@@ -205,27 +259,86 @@ void ElderMainWindow::onSearchFailed(const QString& error) {
 }
 
 void ElderMainWindow::onPlayClicked() {
+  if (side_tabs_ != NULL && side_tabs_->currentWidget() == playlist_pane_) {
+    PlaylistItem item;
+    if (playlist_pane_->selectedItem(&item)) {
+      onPlaylistPlayRequested(item);
+      return;
+    }
+  }
   Video video;
-  if (!SelectedVideo(&video)) {
+  if (!SelectedSearchVideo(&video)) {
     SetStatusMessage(QString::fromUtf8("请先选择一个视频"));
     return;
   }
-  SetStatusMessage(QString::fromUtf8("正在播放：") + video.title);
-  playback_->play(video);
+  playing_from_playlist_ = false;
+  PlayVideo(video);
+}
+
+void ElderMainWindow::onPlaylistPlayRequested(const PlaylistItem& item) {
+  playing_from_playlist_ = true;
+  const int idx = playlist_store_->currentIndex();
+  (void)idx;
+  // Ensure current index matches the requested item.
+  const QVector<PlaylistItem> items = playlist_store_->items();
+  for (int i = 0; i < items.size(); ++i) {
+    if (items[i].id == item.id) {
+      playlist_store_->setCurrentIndex(i);
+      playlist_pane_->selectRow(i);
+      break;
+    }
+  }
+  PlayVideo(VideoFromPlaylistItem(item));
+}
+
+void ElderMainWindow::onPlaybackFinished() {
+  if (!playing_from_playlist_ || playlist_store_ == NULL) {
+    return;
+  }
+  const int cur = playlist_store_->currentIndex();
+  const int next = cur + 1;
+  if (next < 0 || next >= playlist_store_->items().size()) {
+    SetStatusMessage(QString::fromUtf8("播放列表已播完"));
+    return;
+  }
+  playlist_store_->setCurrentIndex(next);
+  playlist_pane_->selectRow(next);
+  const PlaylistItem item = playlist_store_->items()[next];
+  PlayVideo(VideoFromPlaylistItem(item));
+}
+
+void ElderMainWindow::onAddSearchToPlaylist() {
+  Video video;
+  if (!SelectedSearchVideo(&video)) {
+    SetStatusMessage(QString::fromUtf8("请先选择一个视频"));
+    return;
+  }
+  if (playlist_store_->append(video)) {
+    playlist_pane_->refresh();
+    SetStatusMessage(QString::fromUtf8("已加入播放列表：") + video.title);
+  } else {
+    SetStatusMessage(QString::fromUtf8("已在播放列表中：") + video.title);
+  }
 }
 
 void ElderMainWindow::onPauseClicked() { playback_->pause(); }
 
 void ElderMainWindow::onStopClicked() {
+  playing_from_playlist_ = false;
   playback_->stop();
   player_pane_->resetPlaybackProgress();
 }
 
 void ElderMainWindow::onDownloadClicked() {
   Video video;
-  if (!SelectedVideo(&video)) {
-    SetStatusMessage(QString::fromUtf8("请先选择一个视频"));
-    return;
+  if (!SelectedSearchVideo(&video)) {
+    PlaylistItem item;
+    if (playlist_pane_->selectedItem(&item)) {
+      video = VideoFromPlaylistItem(item);
+    } else {
+      SetStatusMessage(QString::fromUtf8("请先选择一个视频"));
+      return;
+    }
   }
   SetStatusMessage(QString::fromUtf8("开始下载：") + video.title);
   downloads_->startDownload(video);
