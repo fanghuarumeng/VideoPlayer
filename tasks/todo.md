@@ -560,21 +560,21 @@ Plan index: `tasks/plan.md` Phase G.
 
 **Acceptance criteria:**
 
-- [ ] Successful upload → `201`, `source_type=local_upload`, playable `play_url`
-- [ ] Concurrent uploads ≤ `upload_workers`; excess → `503 upload_busy`
-- [ ] Reject disallowed extensions with `400`
+- [x] Successful upload → `201`, `source_type=local_upload`, playable `play_url`
+- [x] Concurrent uploads ≤ `upload_workers`; excess → `503 upload_busy`
+- [x] Reject disallowed extensions with `400`
 - [ ] url-health path not required yet for local (skip wired in Task 22 OK if easier here)
 
 **Verification:**
 
-- [ ] Upload gate unit/HTTP test for 503 under cap=1
-- [ ] Manual curl multipart upload + GET media bytes
-- [ ] Server build green
+- [x] Upload gate unit/HTTP test for 503 under cap=1
+- [x] HTTP upload + GET `/media/videos/...` covered by `UploadHttpTest`
+- [x] Server tests 39/39 green (2026-10-10)
 
 **Dependencies:** Task 20  
 **Files likely touched:** `local_media/*`, `ServerConfig.*`, `HttpApiServer.*`, `ServerApp.*`, `config/server.json.example`, tests  
 **Estimated scope:** L  
-**Status:** Pending
+**Status:** Done (2026-10-10)
 
 ---
 

@@ -7,5 +7,9 @@
   "health_interval_ms": 43200000,
   "url_failure_threshold": 3,
   "ingest_keywords": ["广场舞", "square dance"],
-  "authorized_catalog_path": "config/authorized_catalog.example.json"
+  "authorized_catalog_path": "config/authorized_catalog.example.json",
+  "media_root": "data/media",
+  "ffmpeg_path": "ffmpeg",
+  "upload_workers": 2,
+  "thumbnail_workers": 1
 }

@@ -17,6 +17,10 @@ struct ServerConfig {
   int url_failure_threshold;
   std::vector<std::string> ingest_keywords;
   std::string authorized_catalog_path;
+  std::string media_root;
+  std::string ffmpeg_path;
+  int upload_workers;
+  int thumbnail_workers;
 };
 
 ServerConfig MakeDefaultServerConfig();

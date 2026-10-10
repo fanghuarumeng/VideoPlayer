@@ -80,6 +80,8 @@ if(BUILD_SERVER)
     src/server/square_dance/server/api/video_json.cpp
     src/server/square_dance/server/api/HttpApiServer.cpp
     src/server/square_dance/server/api/WsPushServer.cpp
+    src/server/square_dance/server/local_media/UploadGate.cpp
+    src/server/square_dance/server/local_media/LocalMediaStore.cpp
   )
   target_include_directories(square_dance_server_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/server"
@@ -123,6 +125,8 @@ if(BUILD_SERVER)
     tests/server/api/video_json_test.cpp
     tests/server/api/http_search_test.cpp
     tests/server/api/ws_push_test.cpp
+    tests/server/local_media/upload_gate_test.cpp
+    tests/server/local_media/upload_http_test.cpp
   )
   target_link_libraries(SquareDanceServerTests
     PRIVATE

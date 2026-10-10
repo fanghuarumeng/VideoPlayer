@@ -4,6 +4,8 @@
 #include "square_dance/server/api/WsPushServer.h"
 #include "square_dance/server/ingest/IngestConfig.h"
 #include "square_dance/server/ingest/IngestService.h"
+#include "square_dance/server/local_media/LocalMediaStore.h"
+#include "square_dance/server/local_media/UploadGate.h"
 #include "square_dance/server/log.h"
 #include "square_dance/server/url_health/UrlHealthService.h"
 #include "square_dance/server/url_health/UrlProber.h"
@@ -126,7 +128,10 @@ bool ServerApp::Start(std::string* error) {
   health_cfg.interval_ms = config_.health_interval_ms;
   health_.reset(new UrlHealthService(repo_.get(), prober_.get(), health_cfg));
 
+  media_store_.reset(new LocalMediaStore(repo_.get(), config_.media_root));
+  upload_gate_.reset(new UploadGate(config_.upload_workers));
   http_.reset(new HttpApiServer(repo_.get(), ingest_.get()));
+  http_->set_local_media(media_store_.get(), upload_gate_.get());
   ws_.reset(new WsPushServer());
 
   if (!http_->Start(config_.bind_host, config_.http_port, error)) {
@@ -139,6 +144,13 @@ bool ServerApp::Start(std::string* error) {
   }
 
   WireHandlers();
+  http_->set_upserted_handler([this](const Video& video) {
+    if (ws_.get() != NULL) {
+      std::vector<Video> batch;
+      batch.push_back(video);
+      ws_->BroadcastUpserted(batch);
+    }
+  });
 
   // Initial catalog pull so search works immediately after boot.
   ingest_->runOnce();
@@ -184,6 +196,8 @@ void ServerApp::Stop() {
 
   http_.reset();
   ws_.reset();
+  upload_gate_.reset();
+  media_store_.reset();
   health_.reset();
   prober_.reset();
   ingest_.reset();

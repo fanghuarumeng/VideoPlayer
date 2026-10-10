@@ -40,6 +40,10 @@ ServerConfig MakeDefaultServerConfig() {
   cfg.ingest_keywords.push_back("广场舞");
   cfg.ingest_keywords.push_back("square dance");
   cfg.authorized_catalog_path.clear();
+  cfg.media_root = "data/media";
+  cfg.ffmpeg_path = "ffmpeg";
+  cfg.upload_workers = 2;
+  cfg.thumbnail_workers = 1;
   return cfg;
 }
 
@@ -106,6 +110,12 @@ bool LoadServerConfigFromString(const std::string& json_text,
     if (j.contains("url_failure_threshold")) {
       cfg.url_failure_threshold = j.at("url_failure_threshold").get<int>();
     }
+    if (j.contains("upload_workers")) {
+      cfg.upload_workers = j.at("upload_workers").get<int>();
+    }
+    if (j.contains("thumbnail_workers")) {
+      cfg.thumbnail_workers = j.at("thumbnail_workers").get<int>();
+    }
   } catch (const std::exception& ex) {
     if (error != NULL) {
       *error = ex.what();
@@ -131,6 +141,38 @@ bool LoadServerConfigFromString(const std::string& json_text,
       }
       cfg.ingest_keywords.push_back(it->get<std::string>());
     }
+  }
+
+  if (j.contains("media_root")) {
+    if (!j.at("media_root").is_string()) {
+      if (error != NULL) {
+        *error = "media_root must be a string";
+      }
+      return false;
+    }
+    cfg.media_root = j.at("media_root").get<std::string>();
+  }
+  if (j.contains("ffmpeg_path")) {
+    if (!j.at("ffmpeg_path").is_string()) {
+      if (error != NULL) {
+        *error = "ffmpeg_path must be a string";
+      }
+      return false;
+    }
+    cfg.ffmpeg_path = j.at("ffmpeg_path").get<std::string>();
+  }
+
+  if (cfg.upload_workers < 1) {
+    cfg.upload_workers = 1;
+  }
+  if (cfg.upload_workers > 4) {
+    cfg.upload_workers = 4;
+  }
+  if (cfg.thumbnail_workers < 1) {
+    cfg.thumbnail_workers = 1;
+  }
+  if (cfg.thumbnail_workers > 4) {
+    cfg.thumbnail_workers = 4;
   }
 
   *out = cfg;

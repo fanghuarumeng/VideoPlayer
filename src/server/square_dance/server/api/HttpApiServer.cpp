@@ -11,13 +11,49 @@
 
 #include "httplib.h"
 
+#include <nlohmann/json.hpp>
+
 #include <chrono>
 #include <cstdlib>
+#include <fstream>
 #include <sstream>
 #include <thread>
 
 namespace square_dance {
 namespace server {
+namespace {
+
+const std::size_t kMaxUploadBytes = static_cast<std::size_t>(2ull * 1024 * 1024 * 1024);
+
+struct GateHolder {
+  UploadGate* gate;
+  explicit GateHolder(UploadGate* g) : gate(g) {}
+  ~GateHolder() {
+    if (gate != NULL) {
+      gate->release();
+    }
+  }
+};
+
+bool IsSafeMediaName(const std::string& name) {
+  if (name.empty() || name.size() > 256) {
+    return false;
+  }
+  for (std::size_t i = 0; i < name.size(); ++i) {
+    const char c = name[i];
+    const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                    (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-';
+    if (!ok) {
+      return false;
+    }
+  }
+  if (name.find("..") != std::string::npos) {
+    return false;
+  }
+  return true;
+}
+
+}  // namespace
 
 struct HttpApiServer::Impl {
   httplib::Server server;
@@ -26,6 +62,8 @@ struct HttpApiServer::Impl {
 HttpApiServer::HttpApiServer(IVideoRepository* repo, IngestService* ingest)
     : repo_(repo),
       ingest_(ingest),
+      media_store_(NULL),
+      upload_gate_(NULL),
       requested_port_(0),
       bound_port_(0),
       stop_(true),
@@ -35,12 +73,43 @@ HttpApiServer::~HttpApiServer() {
   Stop();
 }
 
+void HttpApiServer::set_local_media(LocalMediaStore* store, UploadGate* gate) {
+  media_store_ = store;
+  upload_gate_ = gate;
+}
+
+void HttpApiServer::set_upserted_handler(UpsertedHandler handler) {
+  std::lock_guard<std::mutex> lock(handler_mutex_);
+  upserted_handler_ = handler;
+}
+
+void HttpApiServer::NotifyUpserted(const Video& video) {
+  UpsertedHandler handler;
+  {
+    std::lock_guard<std::mutex> lock(handler_mutex_);
+    handler = upserted_handler_;
+  }
+  if (handler) {
+    handler(video);
+  }
+}
+
+void HttpApiServer::RefreshHttpBase() {
+  if (media_store_ == NULL) {
+    return;
+  }
+  std::ostringstream ss;
+  ss << "http://" << host_ << ":" << bound_port_.load();
+  media_store_->set_http_base(ss.str());
+}
+
 int HttpApiServer::bound_port() const {
   return bound_port_.load();
 }
 
 void HttpApiServer::RegisterRoutes() {
   httplib::Server& svr = impl_->server;
+  svr.set_payload_max_length(kMaxUploadBytes);
 
   svr.Get("/api/v1/videos/search",
           [this](const httplib::Request& req, httplib::Response& res) {
@@ -50,7 +119,8 @@ void HttpApiServer::RegisterRoutes() {
                               "application/json");
               return;
             }
-            const std::string q = req.has_param("q") ? req.get_param_value("q") : "";
+            const std::string q =
+                req.has_param("q") ? req.get_param_value("q") : "";
             int limit = 20;
             if (req.has_param("limit")) {
               limit = std::atoi(req.get_param_value("limit").c_str());
@@ -101,8 +171,8 @@ void HttpApiServer::RegisterRoutes() {
               res.status = 500;
               return;
             }
-            const std::int64_t id =
-                static_cast<std::int64_t>(std::atoll(req.matches[1].str().c_str()));
+            const std::int64_t id = static_cast<std::int64_t>(
+                std::atoll(req.matches[1].str().c_str()));
             Video video;
             std::string error;
             if (!repo_->getById(id, &video, &error)) {
@@ -113,6 +183,94 @@ void HttpApiServer::RegisterRoutes() {
             res.status = 200;
             res.set_content(VideoToApiJson(video).dump(),
                             "application/json; charset=utf-8");
+          });
+
+  svr.Post("/api/v1/videos/upload",
+           [this](const httplib::Request& req, httplib::Response& res) {
+             if (media_store_ == NULL || upload_gate_ == NULL) {
+               res.status = 503;
+               res.set_content("{\"error\":\"upload unavailable\"}",
+                               "application/json");
+               return;
+             }
+             if (!upload_gate_->tryAcquire()) {
+               res.status = 503;
+               res.set_content("{\"error\":\"upload_busy\"}",
+                               "application/json");
+               return;
+             }
+             GateHolder holder(upload_gate_);
+
+             if (!req.is_multipart_form_data() || !req.has_file("file")) {
+               res.status = 400;
+               res.set_content("{\"error\":\"missing file field\"}",
+                               "application/json");
+               return;
+             }
+
+             const httplib::MultipartFormData& file = req.get_file_value("file");
+             if (file.content.size() > kMaxUploadBytes) {
+               res.status = 413;
+               res.set_content("{\"error\":\"file too large\"}",
+                               "application/json");
+               return;
+             }
+
+             std::string title;
+             if (req.has_file("title")) {
+               title = req.get_file_value("title").content;
+             } else if (req.has_param("title")) {
+               title = req.get_param_value("title");
+             }
+
+             RefreshHttpBase();
+             Video video;
+             std::string error;
+             if (!media_store_->storeUpload(file.filename, title, file.content,
+                                           &video, &error)) {
+               const bool bad_ext =
+                   error.find("extension") != std::string::npos ||
+                   error.find("empty file") != std::string::npos;
+               res.status = bad_ext ? 400 : 500;
+               nlohmann::json body;
+               body["error"] = error;
+               res.set_content(body.dump(), "application/json");
+               return;
+             }
+
+             NotifyUpserted(video);
+             res.status = 201;
+             res.set_content(VideoToApiJson(video).dump(),
+                             "application/json; charset=utf-8");
+           });
+
+  svr.Get(R"(/media/videos/(.+))",
+          [this](const httplib::Request& req, httplib::Response& res) {
+            if (media_store_ == NULL) {
+              res.status = 404;
+              return;
+            }
+            const std::string name = req.matches[1].str();
+            if (!IsSafeMediaName(name)) {
+              res.status = 400;
+              res.set_content("{\"error\":\"invalid name\"}",
+                              "application/json");
+              return;
+            }
+            const std::string path = media_store_->videos_dir() + "/" + name;
+            std::ifstream in(path.c_str(), std::ios::in | std::ios::binary);
+            if (!in) {
+              res.status = 404;
+              res.set_content("{\"error\":\"not found\"}", "application/json");
+              return;
+            }
+            std::ostringstream ss;
+            ss << in.rdbuf();
+            const std::string body = ss.str();
+            const std::string ext = LocalMediaStore::ExtensionOf(name);
+            res.status = 200;
+            res.set_content(body,
+                            LocalMediaStore::ContentTypeForExtension(ext));
           });
 
   svr.Post("/api/v1/ingest/run",
@@ -163,9 +321,9 @@ bool HttpApiServer::Start(const std::string& host, int port, std::string* error)
   }
 
   bound_port_ = bound;
+  RefreshHttpBase();
   thread_ = std::thread(&HttpApiServer::ServeLoop, this);
 
-  // Brief wait so listen is up for tests.
   for (int i = 0; i < 50; ++i) {
     if (impl_->server.is_running()) {
       break;

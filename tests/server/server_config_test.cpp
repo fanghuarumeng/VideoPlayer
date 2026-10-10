@@ -55,6 +55,10 @@ TEST(ServerConfig, AppliesDefaultsWhenOptionalFieldsOmitted) {
   ASSERT_EQ(cfg.ingest_keywords.size(), 2u);
   EXPECT_EQ(cfg.ingest_keywords[0], "广场舞");
   EXPECT_EQ(cfg.ingest_keywords[1], "square dance");
+  EXPECT_EQ(cfg.media_root, "data/media");
+  EXPECT_EQ(cfg.ffmpeg_path, "ffmpeg");
+  EXPECT_EQ(cfg.upload_workers, 2);
+  EXPECT_EQ(cfg.thumbnail_workers, 1);
 }
 
 TEST(ServerConfig, FailsWhenSqlitePathMissing) {

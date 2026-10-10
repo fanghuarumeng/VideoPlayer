@@ -19,6 +19,8 @@ class UrlProber;
 class UrlHealthService;
 class HttpApiServer;
 class WsPushServer;
+class LocalMediaStore;
+class UploadGate;
 
 class ServerApp {
  public:
@@ -57,6 +59,8 @@ class ServerApp {
   std::unique_ptr<IngestService> ingest_;
   std::unique_ptr<UrlProber> prober_;
   std::unique_ptr<UrlHealthService> health_;
+  std::unique_ptr<LocalMediaStore> media_store_;
+  std::unique_ptr<UploadGate> upload_gate_;
   std::unique_ptr<HttpApiServer> http_;
   std::unique_ptr<WsPushServer> ws_;
 };
