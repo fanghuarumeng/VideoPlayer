@@ -1,5 +1,5 @@
-#include "square_dance/server/api/WsPushServer.h"
-#include "square_dance/server/video_store/Video.h"
+#include "video_player/server/api/WsPushServer.h"
+#include "video_player/server/video_store/Video.h"
 
 #include <gtest/gtest.h>
 
@@ -29,8 +29,8 @@ namespace {
 
 typedef websocketpp::client<websocketpp::config::asio_client> WsClient;
 
-square_dance::server::Video MakeVideo() {
-  square_dance::server::Video v;
+video_player::server::Video MakeVideo() {
+  video_player::server::Video v;
   v.id = 42;
   v.external_id = "ws-1";
   v.title = "WS Dance";
@@ -46,7 +46,7 @@ square_dance::server::Video MakeVideo() {
 }  // namespace
 
 TEST(WsPushServer, BroadcastUpsertedReachesClient) {
-  square_dance::server::WsPushServer server;
+  video_player::server::WsPushServer server;
   std::string error;
   ASSERT_TRUE(server.Start("127.0.0.1", 0, &error)) << error;
   ASSERT_GT(server.bound_port(), 0);
@@ -81,7 +81,7 @@ TEST(WsPushServer, BroadcastUpsertedReachesClient) {
   }
   ASSERT_TRUE(opened.load()) << "WS client failed to open";
 
-  std::vector<square_dance::server::Video> videos;
+  std::vector<video_player::server::Video> videos;
   videos.push_back(MakeVideo());
   server.BroadcastUpserted(videos);
 

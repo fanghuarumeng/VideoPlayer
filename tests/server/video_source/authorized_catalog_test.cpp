@@ -1,4 +1,4 @@
-#include "square_dance/server/video_source/AuthorizedCatalogSource.h"
+#include "video_player/server/video_source/AuthorizedCatalogSource.h"
 
 #include <gtest/gtest.h>
 
@@ -42,9 +42,9 @@ TEST(AuthorizedCatalog, ParseSkipsEntriesWithoutHttpUrl) {
     ]
   })";
 
-  std::vector<square_dance::server::VideoCandidate> out;
+  std::vector<video_player::server::VideoCandidate> out;
   std::string error;
-  ASSERT_TRUE(square_dance::server::AuthorizedCatalogSource::ParseCatalogJson(
+  ASSERT_TRUE(video_player::server::AuthorizedCatalogSource::ParseCatalogJson(
       json, &out, &error))
       << error;
   ASSERT_EQ(out.size(), 1u);
@@ -70,11 +70,11 @@ TEST(AuthorizedCatalog, SearchFiltersByTitleKeyword) {
     ]
   })";
   const std::string path = WriteTempCatalog(json);
-  square_dance::server::AuthorizedCatalogSource source(path);
+  video_player::server::AuthorizedCatalogSource source(path);
   EXPECT_EQ(source.id(), "authorized");
 
   std::string error;
-  std::vector<square_dance::server::VideoCandidate> hits =
+  std::vector<video_player::server::VideoCandidate> hits =
       source.search("square", 10, &error);
   ASSERT_EQ(hits.size(), 1u) << error;
   EXPECT_EQ(hits[0].external_id, "1");
@@ -87,9 +87,9 @@ TEST(AuthorizedCatalog, SearchFiltersByTitleKeyword) {
 }
 
 TEST(AuthorizedCatalog, RejectsMalformedRoot) {
-  std::vector<square_dance::server::VideoCandidate> out;
+  std::vector<video_player::server::VideoCandidate> out;
   std::string error;
-  EXPECT_FALSE(square_dance::server::AuthorizedCatalogSource::ParseCatalogJson(
+  EXPECT_FALSE(video_player::server::AuthorizedCatalogSource::ParseCatalogJson(
       "[]", &out, &error));
   EXPECT_FALSE(error.empty());
 }

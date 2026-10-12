@@ -54,7 +54,7 @@ class PushClient : public QObject {
 ```
 
 - Reconnect with backoff on WS drop.
-- Parse server JSON into `square_dance::VideoDto` (`src/common`), then adapt for UI models.
+- Parse server JSON into `video_player::VideoDto` (`src/common`), then adapt for UI models.
 
 ## Testing Strategy
 

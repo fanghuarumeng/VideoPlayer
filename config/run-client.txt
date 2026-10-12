@@ -8,8 +8,8 @@ Local client build / run (Task 11+)
 
 2) Build:
 
-   cmake --build build-client --config Release --target SquareDanceApp
-   cmake --build build-client --config Release --target SquareDanceClientTests
+   cmake --build build-client --config Release --target VideoPlayerApp
+   cmake --build build-client --config Release --target VideoPlayerClientTests
 
 3) Tests:
 
@@ -17,7 +17,7 @@ Local client build / run (Task 11+)
 
 4) Run (from repo root; windeployqt copies Qt DLLs next to the exe on build):
 
-   build-client\Release\SquareDanceApp.exe --config config\client.json.example
+   build-client\Release\VideoPlayerApp.exe --config config\client.json.example
 
 UI (Task 16): 搜索 / 播放 / 暂停 / 停止 / 下载; status shows 已连接/未连接.
 Downloads go to download_dir from client.json (default: downloads/).

@@ -1,7 +1,7 @@
-#include "square_dance/server/api/HttpApiServer.h"
-#include "square_dance/server/local_media/LocalMediaStore.h"
-#include "square_dance/server/local_media/UploadGate.h"
-#include "square_dance/server/video_store/SqliteVideoRepository.h"
+#include "video_player/server/api/HttpApiServer.h"
+#include "video_player/server/local_media/LocalMediaStore.h"
+#include "video_player/server/local_media/UploadGate.h"
+#include "video_player/server/video_store/SqliteVideoRepository.h"
 
 #include <gtest/gtest.h>
 
@@ -48,10 +48,10 @@ class UploadHttpTest : public ::testing::Test {
 
     std::string error;
     ASSERT_TRUE(repo_.Open(db_path_, &error)) << error;
-    store_.reset(new square_dance::server::LocalMediaStore(&repo_, media_root_));
-    gate_.reset(new square_dance::server::UploadGate(1));
+    store_.reset(new video_player::server::LocalMediaStore(&repo_, media_root_));
+    gate_.reset(new video_player::server::UploadGate(1));
     server_.reset(
-        new square_dance::server::HttpApiServer(&repo_, NULL));
+        new video_player::server::HttpApiServer(&repo_, NULL));
     server_->set_local_media(store_.get(), gate_.get());
     ASSERT_TRUE(server_->Start("127.0.0.1", 0, &error)) << error;
     ASSERT_GT(server_->bound_port(), 0);
@@ -70,10 +70,10 @@ class UploadHttpTest : public ::testing::Test {
 
   std::string db_path_;
   std::string media_root_;
-  square_dance::server::SqliteVideoRepository repo_;
-  std::unique_ptr<square_dance::server::LocalMediaStore> store_;
-  std::unique_ptr<square_dance::server::UploadGate> gate_;
-  std::unique_ptr<square_dance::server::HttpApiServer> server_;
+  video_player::server::SqliteVideoRepository repo_;
+  std::unique_ptr<video_player::server::LocalMediaStore> store_;
+  std::unique_ptr<video_player::server::UploadGate> gate_;
+  std::unique_ptr<video_player::server::HttpApiServer> server_;
 };
 
 TEST_F(UploadHttpTest, UploadStoresAndServesMedia) {

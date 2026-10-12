@@ -1,12 +1,12 @@
-#include "square_dance/client/history/PlayHistoryStore.h"
+#include "video_player/client/history/PlayHistoryStore.h"
 
 #include <QFile>
 #include <gtest/gtest.h>
 
 namespace {
 
-square_dance::client::Video MakeVideo(qint64 id, const char* title) {
-  square_dance::client::Video v;
+video_player::client::Video MakeVideo(qint64 id, const char* title) {
+  video_player::client::Video v;
   v.id = id;
   v.title = QString::fromUtf8(title);
   v.play_url = QString::fromUtf8("http://127.0.0.1/%1.mp4").arg(id);
@@ -27,7 +27,7 @@ class PlayHistoryStoreTest : public ::testing::Test {
 };
 
 TEST_F(PlayHistoryStoreTest, UpsertMovesToFrontAndCaps) {
-  square_dance::client::PlayHistoryStore store(path_, 3);
+  video_player::client::PlayHistoryStore store(path_, 3);
   store.recordProgress(MakeVideo(1, "A"), 1000, 10000);
   store.recordProgress(MakeVideo(2, "B"), 2000, 10000);
   store.recordProgress(MakeVideo(3, "C"), 3000, 10000);
@@ -44,19 +44,19 @@ TEST_F(PlayHistoryStoreTest, UpsertMovesToFrontAndCaps) {
 
 TEST_F(PlayHistoryStoreTest, RoundTripAndResumeNearEnd) {
   {
-    square_dance::client::PlayHistoryStore store(path_, 100);
+    video_player::client::PlayHistoryStore store(path_, 100);
     store.recordProgress(MakeVideo(9, "X"), 5000, 10000);
   }
-  square_dance::client::PlayHistoryStore loaded(path_, 100);
+  video_player::client::PlayHistoryStore loaded(path_, 100);
   QString error;
   ASSERT_TRUE(loaded.load(&error)) << error.toStdString();
   ASSERT_EQ(loaded.items().size(), 1);
   EXPECT_EQ(loaded.items()[0].position_ms, 5000);
 
-  square_dance::client::PlayHistoryItem near_end = loaded.items()[0];
+  video_player::client::PlayHistoryItem near_end = loaded.items()[0];
   near_end.position_ms = 9500;
   near_end.duration_ms = 10000;
-  EXPECT_EQ(square_dance::client::PlayHistoryStore::ResumePositionMs(near_end),
+  EXPECT_EQ(video_player::client::PlayHistoryStore::ResumePositionMs(near_end),
             0);
 
   loaded.clear();

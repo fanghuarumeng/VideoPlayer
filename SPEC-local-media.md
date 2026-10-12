@@ -19,7 +19,7 @@ Server accepts a local video upload, stores the file on disk, generates a thumbn
 ## Commands
 
 ```
-cmake --build build-server --config Release --target SquareDanceServer
+cmake --build build-server --config Release --target VideoPlayerServer
 ctest --test-dir build-server -C Release -R local_media --output-on-failure
 # manual:
 # curl -F "file=@sample.mp4" -F "title=Demo" http://127.0.0.1:8080/api/v1/videos/upload
@@ -29,7 +29,7 @@ ctest --test-dir build-server -C Release -R local_media --output-on-failure
 ## Project Structure
 
 ```
-src/server/square_dance/server/local_media/
+src/server/video_player/server/local_media/
   LocalMediaStore.*          → save upload bytes, upsert row, enqueue thumb job
   ThumbnailGenerator.*       → wraps ffmpeg CLI (single job execution)
   ThumbnailQueue.*           → FIFO queue + worker pool with max concurrency

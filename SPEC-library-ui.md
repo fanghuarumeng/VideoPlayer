@@ -18,14 +18,14 @@ Primary client surface for personal media: upload local files, browse **all** vi
 ## Commands
 
 ```
-cmake --build build-client --config Release --target SquareDanceApp
-# manual UX checklist against running SquareDanceServer with media_root + ffmpeg
+cmake --build build-client --config Release --target VideoPlayerApp
+# manual UX checklist against running VideoPlayerServer with media_root + ffmpeg
 ```
 
 ## Project Structure
 
 ```
-src/client/square_dance/client/library/
+src/client/video_player/client/library/
   LibraryPane.*          → grid, multi-select, batch-add, refresh
   VideoTileDelegate.*    → or custom flow layout of tiles
   UploadController.*     → QFileDialog + multipart upload; local queue + max in-flight; 503 retry

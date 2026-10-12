@@ -1,5 +1,5 @@
-#include "square_dance/server/url_health/UrlHealthService.h"
-#include "square_dance/server/video_store/SqliteVideoRepository.h"
+#include "video_player/server/url_health/UrlHealthService.h"
+#include "video_player/server/video_store/SqliteVideoRepository.h"
 
 #include <gtest/gtest.h>
 
@@ -9,7 +9,7 @@
 
 namespace {
 
-class FakeProber : public square_dance::server::IUrlProber {
+class FakeProber : public video_player::server::IUrlProber {
  public:
   FakeProber() : default_ok_(true) {}
 
@@ -26,9 +26,9 @@ class FakeProber : public square_dance::server::IUrlProber {
   std::map<std::string, bool> per_url_;
 };
 
-square_dance::server::Video MakeVideo(const std::string& id,
+video_player::server::Video MakeVideo(const std::string& id,
                                       const std::string& title) {
-  square_dance::server::Video v;
+  video_player::server::Video v;
   v.id = 0;
   v.external_id = id;
   v.title = title;
@@ -50,7 +50,7 @@ class UrlHealthServiceTest : public ::testing::Test {
     std::remove(db_path_.c_str());
     std::string error;
     ASSERT_TRUE(repo_.Open(db_path_, &error)) << error;
-    config_ = square_dance::server::UrlHealthConfig::MakeDefault();
+    config_ = video_player::server::UrlHealthConfig::MakeDefault();
     config_.interval_ms = 60 * 60 * 1000;
   }
 
@@ -60,8 +60,8 @@ class UrlHealthServiceTest : public ::testing::Test {
   }
 
   std::string db_path_;
-  square_dance::server::SqliteVideoRepository repo_;
-  square_dance::server::UrlHealthConfig config_;
+  video_player::server::SqliteVideoRepository repo_;
+  video_player::server::UrlHealthConfig config_;
 };
 
 TEST_F(UrlHealthServiceTest, DeletesAfterThreeConsecutiveFailures) {
@@ -71,7 +71,7 @@ TEST_F(UrlHealthServiceTest, DeletesAfterThreeConsecutiveFailures) {
   FakeProber prober;
   prober.default_ok_ = false;
 
-  square_dance::server::UrlHealthService health(&repo_, &prober, config_);
+  video_player::server::UrlHealthService health(&repo_, &prober, config_);
   std::vector<std::int64_t> removed;
   health.set_removed_handler(
       [&](const std::vector<std::int64_t>& ids) { removed = ids; });
@@ -91,16 +91,16 @@ TEST_F(UrlHealthServiceTest, DeletesAfterThreeConsecutiveFailures) {
 
 TEST_F(UrlHealthServiceTest, SuccessResetsFailureCounter) {
   std::string error;
-  square_dance::server::Video video = MakeVideo("flaky", "Flaky");
+  video_player::server::Video video = MakeVideo("flaky", "Flaky");
   video.consecutive_failures = 2;
   ASSERT_TRUE(repo_.upsert(video, &error)) << error;
 
   FakeProber prober;
   prober.default_ok_ = true;
-  square_dance::server::UrlHealthService health(&repo_, &prober, config_);
+  video_player::server::UrlHealthService health(&repo_, &prober, config_);
   health.runOnce();
 
-  const std::vector<square_dance::server::Video> all = repo_.listAll(10, 0);
+  const std::vector<video_player::server::Video> all = repo_.listAll(10, 0);
   ASSERT_EQ(all.size(), 1u);
   EXPECT_EQ(all[0].consecutive_failures, 0);
 }
@@ -108,7 +108,7 @@ TEST_F(UrlHealthServiceTest, SuccessResetsFailureCounter) {
 TEST_F(UrlHealthServiceTest, StartStopDoesNotHang) {
   FakeProber prober;
   config_.interval_ms = 50;
-  square_dance::server::UrlHealthService health(&repo_, &prober, config_);
+  video_player::server::UrlHealthService health(&repo_, &prober, config_);
   health.start();
   health.stop();
   SUCCEED();
@@ -116,7 +116,7 @@ TEST_F(UrlHealthServiceTest, StartStopDoesNotHang) {
 
 TEST_F(UrlHealthServiceTest, SkipsLocalUploadEvenIfUnreachable) {
   std::string error;
-  square_dance::server::Video local = MakeVideo("local-1", "Local");
+  video_player::server::Video local = MakeVideo("local-1", "Local");
   local.source_type = "local_upload";
   local.play_url = "http://127.0.0.1:9/media/videos/local-1.mp4";
   local.download_url = local.play_url;
@@ -125,7 +125,7 @@ TEST_F(UrlHealthServiceTest, SkipsLocalUploadEvenIfUnreachable) {
   FakeProber prober;
   prober.default_ok_ = false;
   std::vector<std::int64_t> removed;
-  square_dance::server::UrlHealthService health(&repo_, &prober, config_);
+  video_player::server::UrlHealthService health(&repo_, &prober, config_);
   health.set_removed_handler(
       [&removed](const std::vector<std::int64_t>& ids) {
         removed.insert(removed.end(), ids.begin(), ids.end());
@@ -135,7 +135,7 @@ TEST_F(UrlHealthServiceTest, SkipsLocalUploadEvenIfUnreachable) {
     health.runOnce();
   }
 
-  const std::vector<square_dance::server::Video> all = repo_.listAll(10, 0);
+  const std::vector<video_player::server::Video> all = repo_.listAll(10, 0);
   ASSERT_EQ(all.size(), 1u);
   EXPECT_EQ(all[0].source_type, "local_upload");
   EXPECT_EQ(all[0].consecutive_failures, 0);

@@ -1,14 +1,14 @@
-#include "square_dance/VideoDto.h"
-#include "square_dance/video_json.h"
+#include "video_player/VideoDto.h"
+#include "video_player/video_json.h"
 
 #include <gtest/gtest.h>
 
 #include <string>
 
-using square_dance::VideoDto;
-using square_dance::videoDtoFromJson;
-using square_dance::videoDtoToJson;
-using square_dance::videoDtoToJsonString;
+using video_player::VideoDto;
+using video_player::videoDtoFromJson;
+using video_player::videoDtoToJson;
+using video_player::videoDtoToJsonString;
 
 TEST(VideoJson, RoundTripPreservesApiFields) {
   VideoDto in;

@@ -1,5 +1,5 @@
-#include "square_dance/client/api/CatalogModel.h"
-#include "square_dance/client/api/PushClient.h"
+#include "video_player/client/api/CatalogModel.h"
+#include "video_player/client/api/PushClient.h"
 
 #include <QCoreApplication>
 #include <QSignalSpy>
@@ -28,18 +28,18 @@ TEST(PushClient, ReceivesUpsertAndUpdatesModel) {
     peer = server.nextPendingConnection();
   });
 
-  square_dance::client::PushClient client;
-  square_dance::client::CatalogModel model;
+  video_player::client::PushClient client;
+  video_player::client::CatalogModel model;
   model.setFilterQuery(QString());
-  QObject::connect(&client, &square_dance::client::PushClient::videoUpserted,
-                   &model, &square_dance::client::CatalogModel::applyUpserted);
-  QObject::connect(&client, &square_dance::client::PushClient::videoRemoved,
-                   &model, &square_dance::client::CatalogModel::applyRemoved);
+  QObject::connect(&client, &video_player::client::PushClient::videoUpserted,
+                   &model, &video_player::client::CatalogModel::applyUpserted);
+  QObject::connect(&client, &video_player::client::PushClient::videoRemoved,
+                   &model, &video_player::client::CatalogModel::applyRemoved);
 
   QSignalSpy connected_spy(&client,
-                           &square_dance::client::PushClient::connectionChanged);
+                           &video_player::client::PushClient::connectionChanged);
   QSignalSpy upsert_spy(&client,
-                        &square_dance::client::PushClient::videoUpserted);
+                        &video_player::client::PushClient::videoUpserted);
 
   const QUrl url(QString::fromUtf8("ws://127.0.0.1:") +
                  QString::number(server.serverPort()) +
@@ -66,7 +66,7 @@ TEST(PushClient, ReceivesUpsertAndUpdatesModel) {
   EXPECT_EQ(model.videoAt(0).title, QString::fromUtf8("推送曲"));
 
   QSignalSpy removed_spy(&client,
-                         &square_dance::client::PushClient::videoRemoved);
+                         &video_player::client::PushClient::videoRemoved);
   peer->sendTextMessage(QString::fromUtf8("{\"type\":\"video.removed\",\"id\":42}"));
   ASSERT_TRUE(WaitForSpy(&removed_spy));
   EXPECT_EQ(model.rowCount(), 0);
@@ -88,13 +88,13 @@ TEST(PushClient, IgnoresUnknownWithoutSignals) {
     peer = server.nextPendingConnection();
   });
 
-  square_dance::client::PushClient client;
+  video_player::client::PushClient client;
   QSignalSpy upsert_spy(&client,
-                        &square_dance::client::PushClient::videoUpserted);
+                        &video_player::client::PushClient::videoUpserted);
   QSignalSpy removed_spy(&client,
-                         &square_dance::client::PushClient::videoRemoved);
+                         &video_player::client::PushClient::videoRemoved);
   QSignalSpy connected_spy(&client,
-                           &square_dance::client::PushClient::connectionChanged);
+                           &video_player::client::PushClient::connectionChanged);
 
   client.connectToServer(QUrl(QString::fromUtf8("ws://127.0.0.1:") +
                               QString::number(server.serverPort())));

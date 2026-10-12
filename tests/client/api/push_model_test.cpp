@@ -1,11 +1,11 @@
-#include "square_dance/client/api/CatalogModel.h"
+#include "video_player/client/api/CatalogModel.h"
 
 #include <gtest/gtest.h>
 
 namespace {
 
-square_dance::client::Video MakeVideo(qint64 id, const char* title) {
-  square_dance::client::Video v;
+video_player::client::Video MakeVideo(qint64 id, const char* title) {
+  video_player::client::Video v;
   v.id = id;
   v.external_id = QString::fromUtf8("ext-") + QString::number(id);
   v.title = QString::fromUtf8(title);
@@ -19,9 +19,9 @@ square_dance::client::Video MakeVideo(qint64 id, const char* title) {
 }  // namespace
 
 TEST(CatalogModelPush, EmptyFilterPrependsNew) {
-  square_dance::client::CatalogModel model;
+  video_player::client::CatalogModel model;
   model.setFilterQuery(QString());
-  QVector<square_dance::client::Video> seed;
+  QVector<video_player::client::Video> seed;
   seed.push_back(MakeVideo(1, "old"));
   model.resetFromSearch(seed);
 
@@ -32,8 +32,8 @@ TEST(CatalogModelPush, EmptyFilterPrependsNew) {
 }
 
 TEST(CatalogModelPush, EmptyFilterUpdatesExisting) {
-  square_dance::client::CatalogModel model;
-  QVector<square_dance::client::Video> seed;
+  video_player::client::CatalogModel model;
+  QVector<video_player::client::Video> seed;
   seed.push_back(MakeVideo(1, "old"));
   model.resetFromSearch(seed);
 
@@ -43,14 +43,14 @@ TEST(CatalogModelPush, EmptyFilterUpdatesExisting) {
 }
 
 TEST(CatalogModelPush, NonEmptyFilterIgnoresNonMatching) {
-  square_dance::client::CatalogModel model;
+  video_player::client::CatalogModel model;
   model.setFilterQuery(QString::fromUtf8("广场舞"));
   model.applyUpserted(MakeVideo(9, "square dance only"));
   EXPECT_EQ(model.rowCount(), 0);
 }
 
 TEST(CatalogModelPush, NonEmptyFilterKeepsMatchingAndRemovesMismatchUpdate) {
-  square_dance::client::CatalogModel model;
+  video_player::client::CatalogModel model;
   model.setFilterQuery(QString::fromUtf8("广场舞"));
   model.applyUpserted(MakeVideo(1, "欢乐广场舞"));
   ASSERT_EQ(model.rowCount(), 1);
@@ -60,8 +60,8 @@ TEST(CatalogModelPush, NonEmptyFilterKeepsMatchingAndRemovesMismatchUpdate) {
 }
 
 TEST(CatalogModelPush, ApplyRemovedDropsRow) {
-  square_dance::client::CatalogModel model;
-  QVector<square_dance::client::Video> seed;
+  video_player::client::CatalogModel model;
+  QVector<video_player::client::Video> seed;
   seed.push_back(MakeVideo(5, "gone"));
   model.resetFromSearch(seed);
   model.applyRemoved(5);

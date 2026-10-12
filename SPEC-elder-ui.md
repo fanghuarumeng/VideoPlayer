@@ -14,7 +14,7 @@ Elderly-friendly Windows UI on top of `client-api`: search by name (HTTP), play,
 ## Commands
 
 ```
-cmake --build build --config Release --target SquareDanceApp
+cmake --build build --config Release --target VideoPlayerApp
 # manual UX checklist
 ```
 

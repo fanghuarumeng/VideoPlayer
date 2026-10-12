@@ -49,7 +49,7 @@ Playback now links libav* (market-standard). You must vendor a **shared** Window
      third_party/ffmpeg/include/libavformat/avformat.h
      third_party/ffmpeg/lib/avformat.lib
      third_party/ffmpeg/bin/*.dll
-   Build copies DLLs next to SquareDanceApp.exe automatically.
+   Build copies DLLs next to VideoPlayerApp.exe automatically.
 
 5) Runtime
    DLLs must sit beside the .exe (POST_BUILD does this).

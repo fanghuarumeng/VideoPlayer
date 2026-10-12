@@ -2,7 +2,7 @@
 
 ## Objective
 
-Pure C++11 backend executable `SquareDanceServer`: CMake target, process entry, JSON config, logging, GoogleTest. **Must not link Qt.**
+Pure C++11 backend executable `VideoPlayerServer`: CMake target, process entry, JSON config, logging, GoogleTest. **Must not link Qt.**
 
 **Success:** server builds on Windows without Qt; loads config; smoke test passes.
 
@@ -25,11 +25,11 @@ Pure C++11 backend executable `SquareDanceServer`: CMake target, process entry, 
 
 ```
 cmake -S . -B build
-cmake --build build --config Release --target SquareDanceServer
-cmake --build build --config Release --target SquareDanceServerTests
+cmake --build build --config Release --target VideoPlayerServer
+cmake --build build --config Release --target VideoPlayerServerTests
 ctest --test-dir build -C Release -R server --output-on-failure
 
-build/Release/SquareDanceServer.exe --config config/server.json
+build/Release/VideoPlayerServer.exe --config config/server.json
 ```
 
 Backend configure **must succeed without** `CMAKE_PREFIX_PATH` pointing at Qt.
@@ -53,7 +53,7 @@ tests/server/
 ## Code Style
 
 ```cpp
-namespace square_dance {
+namespace video_player {
 namespace server {
 
 struct ServerConfig {
@@ -69,7 +69,7 @@ struct ServerConfig {
 };
 
 }  // namespace server
-}  // namespace square_dance
+}  // namespace video_player
 ```
 
 - Use `std::string`, not `QString`, in all server and `src/common` code.
@@ -88,7 +88,7 @@ struct ServerConfig {
 
 ## Success Criteria
 
-- [ ] `SquareDanceServer` builds on a machine with no Qt installed (CI job or local proof).
+- [ ] `VideoPlayerServer` builds on a machine with no Qt installed (CI job or local proof).
 - [ ] Config loads from JSON example.
 - [ ] Server smoke/config GTest passes via ctest.
 

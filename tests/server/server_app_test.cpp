@@ -1,5 +1,5 @@
-#include "square_dance/server/ServerApp.h"
-#include "square_dance/server/ServerConfig.h"
+#include "video_player/server/ServerApp.h"
+#include "video_player/server/ServerConfig.h"
 
 #include <gtest/gtest.h>
 
@@ -40,8 +40,8 @@ TEST(ServerApp, StartsHttpAndIngestsAuthorizedCatalog) {
           "  }]\n"
           "}\n");
 
-  square_dance::server::ServerConfig cfg =
-      square_dance::server::MakeDefaultServerConfig();
+  video_player::server::ServerConfig cfg =
+      video_player::server::MakeDefaultServerConfig();
   cfg.bind_host = "127.0.0.1";
   cfg.http_port = 0;
   cfg.ws_port = 0;
@@ -54,7 +54,7 @@ TEST(ServerApp, StartsHttpAndIngestsAuthorizedCatalog) {
 
   std::remove(cfg.sqlite_path.c_str());
 
-  square_dance::server::ServerApp app(cfg);
+  video_player::server::ServerApp app(cfg);
   std::string error;
   ASSERT_TRUE(app.Start(&error)) << error;
   ASSERT_GT(app.http_port(), 0);

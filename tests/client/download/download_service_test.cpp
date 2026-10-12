@@ -1,5 +1,5 @@
-#include "square_dance/client/api/Video.h"
-#include "square_dance/client/download/DownloadService.h"
+#include "video_player/client/api/Video.h"
+#include "video_player/client/download/DownloadService.h"
 
 #include <QByteArray>
 #include <QFile>
@@ -65,8 +65,8 @@ bool WaitForSpy(QSignalSpy* spy, int timeout_ms = 3000) {
   return spy->wait(timeout_ms);
 }
 
-square_dance::client::Video MakeVideo(qint64 id, const QString& url) {
-  square_dance::client::Video v;
+video_player::client::Video MakeVideo(qint64 id, const QString& url) {
+  video_player::client::Video v;
   v.id = id;
   v.external_id = QString::fromUtf8("d") + QString::number(id);
   v.title = QString::fromUtf8("测试下载");
@@ -86,14 +86,14 @@ TEST(DownloadService, DownloadsFileAndEmitsProgress) {
 
   QTemporaryDir dir;
   ASSERT_TRUE(dir.isValid());
-  square_dance::client::DownloadService service(dir.path());
+  video_player::client::DownloadService service(dir.path());
 
   QSignalSpy progress_spy(
-      &service, &square_dance::client::DownloadService::progress);
+      &service, &video_player::client::DownloadService::progress);
   QSignalSpy finished_spy(
-      &service, &square_dance::client::DownloadService::finished);
+      &service, &video_player::client::DownloadService::finished);
   QSignalSpy error_spy(
-      &service, &square_dance::client::DownloadService::errorOccurred);
+      &service, &video_player::client::DownloadService::errorOccurred);
 
   const QString url = QString::fromUtf8("http://127.0.0.1:") +
                       QString::number(fake.port()) +
@@ -113,9 +113,9 @@ TEST(DownloadService, DownloadsFileAndEmitsProgress) {
 TEST(DownloadService, EmptyUrlEmitsError) {
   QTemporaryDir dir;
   ASSERT_TRUE(dir.isValid());
-  square_dance::client::DownloadService service(dir.path());
+  video_player::client::DownloadService service(dir.path());
   QSignalSpy error_spy(
-      &service, &square_dance::client::DownloadService::errorOccurred);
+      &service, &video_player::client::DownloadService::errorOccurred);
   service.startDownload(MakeVideo(2, QString()));
   ASSERT_EQ(error_spy.count(), 1);
 }
@@ -130,9 +130,9 @@ TEST(DownloadService, CancelRemovesPartial) {
 
   QTemporaryDir dir;
   ASSERT_TRUE(dir.isValid());
-  square_dance::client::DownloadService service(dir.path());
+  video_player::client::DownloadService service(dir.path());
   QSignalSpy error_spy(
-      &service, &square_dance::client::DownloadService::errorOccurred);
+      &service, &video_player::client::DownloadService::errorOccurred);
 
   const QString url = QString::fromUtf8("http://127.0.0.1:") +
                       QString::number(stall.serverPort()) +

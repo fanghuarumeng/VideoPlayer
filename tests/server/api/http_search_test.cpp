@@ -1,6 +1,6 @@
-#include "square_dance/server/api/HttpApiServer.h"
-#include "square_dance/server/video_store/SqliteVideoRepository.h"
-#include "square_dance/server/video_store/Video.h"
+#include "video_player/server/api/HttpApiServer.h"
+#include "video_player/server/video_store/SqliteVideoRepository.h"
+#include "video_player/server/video_store/Video.h"
 
 #include <gtest/gtest.h>
 
@@ -21,9 +21,9 @@
 
 namespace {
 
-square_dance::server::Video MakeVideo(const std::string& id,
+video_player::server::Video MakeVideo(const std::string& id,
                                       const std::string& title) {
-  square_dance::server::Video v;
+  video_player::server::Video v;
   v.id = 0;
   v.external_id = id;
   v.title = title;
@@ -49,7 +49,7 @@ class HttpSearchTest : public ::testing::Test {
         << error;
     ASSERT_TRUE(repo_.upsert(MakeVideo("2", "Other Clip"), &error)) << error;
 
-    server_.reset(new square_dance::server::HttpApiServer(&repo_, NULL));
+    server_.reset(new video_player::server::HttpApiServer(&repo_, NULL));
     ASSERT_TRUE(server_->Start("127.0.0.1", 0, &error)) << error;
     ASSERT_GT(server_->bound_port(), 0);
   }
@@ -64,8 +64,8 @@ class HttpSearchTest : public ::testing::Test {
   }
 
   std::string db_path_;
-  square_dance::server::SqliteVideoRepository repo_;
-  std::unique_ptr<square_dance::server::HttpApiServer> server_;
+  video_player::server::SqliteVideoRepository repo_;
+  std::unique_ptr<video_player::server::HttpApiServer> server_;
 };
 
 TEST_F(HttpSearchTest, SearchReturnsMatchingVideos) {
@@ -87,7 +87,7 @@ TEST_F(HttpSearchTest, SearchReturnsMatchingVideos) {
 
 TEST_F(HttpSearchTest, GetByIdAndMissing) {
   httplib::Client client("127.0.0.1", server_->bound_port());
-  const std::vector<square_dance::server::Video> all = repo_.listAll(10, 0);
+  const std::vector<video_player::server::Video> all = repo_.listAll(10, 0);
   ASSERT_FALSE(all.empty());
 
   std::ostringstream path;

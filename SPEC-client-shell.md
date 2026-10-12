@@ -2,7 +2,7 @@
 
 ## Objective
 
-Windows Qt Widgets frontend executable `SquareDanceApp`: application entry, main window shell, GoogleTest harness. No direct database access.
+Windows Qt Widgets frontend executable `VideoPlayerApp`: application entry, main window shell, GoogleTest harness. No direct database access.
 
 **Success:** app window opens; can be pointed at backend base URLs via config; smoke test green.
 
@@ -15,9 +15,9 @@ Windows Qt Widgets frontend executable `SquareDanceApp`: application entry, main
 ## Commands
 
 ```
-cmake --build build --config Release --target SquareDanceApp
+cmake --build build --config Release --target VideoPlayerApp
 ctest --test-dir build -C Release -R client --output-on-failure
-build/Release/SquareDanceApp.exe --config config/client.json
+build/Release/VideoPlayerApp.exe --config config/client.json
 ```
 
 ## Project Structure
@@ -36,7 +36,7 @@ tests/client/
 ## Code Style
 
 ```cpp
-namespace square_dance {
+namespace video_player {
 namespace client {
 
 struct ClientConfig {
@@ -46,7 +46,7 @@ struct ClientConfig {
 };
 
 }  // namespace client
-}  // namespace square_dance
+}  // namespace video_player
 ```
 
 ## Testing Strategy
@@ -61,7 +61,7 @@ struct ClientConfig {
 
 ## Success Criteria
 
-- [ ] `SquareDanceApp` builds and shows a window.
+- [ ] `VideoPlayerApp` builds and shows a window.
 - [ ] Client config loads HTTP/WS endpoints.
 - [ ] Client smoke GTest passes.
 

@@ -1,5 +1,5 @@
-#include "square_dance/client/api/CatalogClient.h"
-#include "square_dance/client/api/CatalogModel.h"
+#include "video_player/client/api/CatalogClient.h"
+#include "video_player/client/api/CatalogModel.h"
 
 #include <QByteArray>
 #include <QHostAddress>
@@ -80,15 +80,15 @@ TEST(CatalogClient, SearchEmitsFinishedAndFillsModel) {
 
   const QString base =
       QString::fromUtf8("http://127.0.0.1:") + QString::number(fake.port());
-  square_dance::client::CatalogClient client(base);
-  square_dance::client::CatalogModel model;
-  QObject::connect(&client, &square_dance::client::CatalogClient::searchFinished,
-                   &model, &square_dance::client::CatalogModel::resetFromSearch);
+  video_player::client::CatalogClient client(base);
+  video_player::client::CatalogModel model;
+  QObject::connect(&client, &video_player::client::CatalogClient::searchFinished,
+                   &model, &video_player::client::CatalogModel::resetFromSearch);
 
   QSignalSpy finished_spy(&client,
-                          &square_dance::client::CatalogClient::searchFinished);
+                          &video_player::client::CatalogClient::searchFinished);
   QSignalSpy failed_spy(&client,
-                        &square_dance::client::CatalogClient::searchFailed);
+                        &video_player::client::CatalogClient::searchFailed);
 
   client.search(QString::fromUtf8("七"), 20);
   ASSERT_TRUE(WaitForSpy(&finished_spy)) << "searchFinished not emitted";
@@ -104,11 +104,11 @@ TEST(CatalogClient, SearchEmitsFailedOnHttpError) {
 
   const QString base =
       QString::fromUtf8("http://127.0.0.1:") + QString::number(fake.port());
-  square_dance::client::CatalogClient client(base);
+  video_player::client::CatalogClient client(base);
   QSignalSpy failed_spy(&client,
-                        &square_dance::client::CatalogClient::searchFailed);
+                        &video_player::client::CatalogClient::searchFailed);
   QSignalSpy finished_spy(&client,
-                          &square_dance::client::CatalogClient::searchFinished);
+                          &video_player::client::CatalogClient::searchFinished);
 
   client.search(QString::fromUtf8("x"), 10);
   ASSERT_TRUE(WaitForSpy(&failed_spy)) << "searchFailed not emitted";

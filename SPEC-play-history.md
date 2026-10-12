@@ -17,14 +17,14 @@ Record what was played and **where** it stopped, on the local client only, so th
 ## Commands
 
 ```
-cmake --build build-client --config Release --target SquareDanceApp
+cmake --build build-client --config Release --target VideoPlayerApp
 ctest --test-dir build-client -C Release -R play_history --output-on-failure
 ```
 
 ## Project Structure
 
 ```
-src/client/square_dance/client/history/
+src/client/video_player/client/history/
   PlayHistoryStore.*
   PlayHistoryModel.*
   HistoryPane.*

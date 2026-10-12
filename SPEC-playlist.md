@@ -17,14 +17,14 @@ One client-local playback queue: show title + thumbnail, scroll when long, clear
 ## Commands
 
 ```
-cmake --build build-client --config Release --target SquareDanceApp
+cmake --build build-client --config Release --target VideoPlayerApp
 ctest --test-dir build-client -C Release -R playlist --output-on-failure
 ```
 
 ## Project Structure
 
 ```
-src/client/square_dance/client/playlist/
+src/client/video_player/client/playlist/
   PlaylistStore.*       → load/save JSON; append/clear/remove
   PlaylistModel.*       → QAbstractListModel (id, title, play_url, thumbnail_url)
   PlaylistPane.*        → list UI + clear + play current

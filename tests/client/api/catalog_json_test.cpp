@@ -1,4 +1,4 @@
-#include "square_dance/client/api/catalog_json.h"
+#include "video_player/client/api/catalog_json.h"
 
 #include <QFile>
 #include <gtest/gtest.h>
@@ -6,11 +6,11 @@
 namespace {
 
 QByteArray LoadFixture(const char* name) {
-#ifndef SQUARE_DANCE_SOURCE_DIR
-#error SQUARE_DANCE_SOURCE_DIR must be defined by CMake
+#ifndef VIDEO_PLAYER_SOURCE_DIR
+#error VIDEO_PLAYER_SOURCE_DIR must be defined by CMake
 #endif
   const QString path =
-      QString::fromUtf8(SQUARE_DANCE_SOURCE_DIR) +
+      QString::fromUtf8(VIDEO_PLAYER_SOURCE_DIR) +
       QString::fromUtf8("/tests/client/api/fixtures/") +
       QString::fromUtf8(name);
   QFile file(path);
@@ -22,9 +22,9 @@ QByteArray LoadFixture(const char* name) {
 
 TEST(CatalogJson, ParsesSearchResultsFixture) {
   const QByteArray bytes = LoadFixture("search_results.json");
-  QVector<square_dance::client::Video> videos;
+  QVector<video_player::client::Video> videos;
   QString error;
-  ASSERT_TRUE(square_dance::client::ParseVideoListJson(bytes, &videos, &error))
+  ASSERT_TRUE(video_player::client::ParseVideoListJson(bytes, &videos, &error))
       << error.toStdString();
   ASSERT_EQ(videos.size(), 2);
   EXPECT_EQ(videos[0].id, 1);
@@ -38,21 +38,21 @@ TEST(CatalogJson, ParsesSearchResultsFixture) {
 
 TEST(CatalogJson, ParsesSingleVideoObject) {
   const QByteArray bytes = LoadFixture("search_results.json");
-  QVector<square_dance::client::Video> videos;
+  QVector<video_player::client::Video> videos;
   QString error;
-  ASSERT_TRUE(square_dance::client::ParseVideoListJson(bytes, &videos, &error));
-  const QByteArray one = square_dance::client::VideoToJsonBytes(videos[0]);
-  square_dance::client::Video out;
-  ASSERT_TRUE(square_dance::client::ParseVideoJson(one, &out, &error))
+  ASSERT_TRUE(video_player::client::ParseVideoListJson(bytes, &videos, &error));
+  const QByteArray one = video_player::client::VideoToJsonBytes(videos[0]);
+  video_player::client::Video out;
+  ASSERT_TRUE(video_player::client::ParseVideoJson(one, &out, &error))
       << error.toStdString();
   EXPECT_EQ(out.id, videos[0].id);
   EXPECT_EQ(out.title, videos[0].title);
 }
 
 TEST(CatalogJson, FailsOnNonArrayForList) {
-  QVector<square_dance::client::Video> videos;
+  QVector<video_player::client::Video> videos;
   QString error;
-  EXPECT_FALSE(square_dance::client::ParseVideoListJson(
+  EXPECT_FALSE(video_player::client::ParseVideoListJson(
       QByteArray("{\"id\":1}"), &videos, &error));
   EXPECT_FALSE(error.isEmpty());
 }
@@ -62,8 +62,8 @@ TEST(CatalogJson, FailsOnMissingPlayUrlInList) {
       "[{\"id\":1,\"external_id\":\"x\",\"title\":\"t\","
       "\"download_url\":\"https://e/a.mp4\",\"source_type\":\"authorized\","
       "\"updated_at\":\"2026-01-01T00:00:00Z\"}]";
-  QVector<square_dance::client::Video> videos;
+  QVector<video_player::client::Video> videos;
   QString error;
-  EXPECT_FALSE(square_dance::client::ParseVideoListJson(json, &videos, &error));
+  EXPECT_FALSE(video_player::client::ParseVideoListJson(json, &videos, &error));
   EXPECT_FALSE(error.isEmpty());
 }

@@ -32,7 +32,7 @@ Write-Host "==> cmake configure (BUILD_CLIENT=OFF)"
   -DBUILD_CLIENT=OFF
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "==> cmake build SquareDanceServer + tests"
+Write-Host "==> cmake build VideoPlayerServer + tests"
 & $CMake --build $BuildDir --config $Config
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

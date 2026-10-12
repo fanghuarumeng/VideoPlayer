@@ -1,6 +1,6 @@
-#include "square_dance/client/api/Video.h"
-#include "square_dance/client/playback/PlaybackController.h"
-#include "square_dance/client/playback/VideoPlayerWidget.h"
+#include "video_player/client/api/Video.h"
+#include "video_player/client/playback/PlaybackController.h"
+#include "video_player/client/playback/VideoPlayerWidget.h"
 
 #include <QDir>
 #include <QSignalSpy>
@@ -9,8 +9,8 @@
 
 namespace {
 
-square_dance::client::Video MakeVideo(const QString& play_url) {
-  square_dance::client::Video v;
+video_player::client::Video MakeVideo(const QString& play_url) {
+  video_player::client::Video v;
   v.id = 1;
   v.external_id = QString::fromUtf8("p1");
   v.title = QString::fromUtf8("t");
@@ -43,12 +43,12 @@ TEST(Playback, EmptyUrlEmitsErrorAndLeavesDownloadDirUntouched) {
   ASSERT_TRUE(download_dir.isValid());
   const int before = CountFilesRecursive(download_dir.path());
 
-  square_dance::client::PlaybackController controller;
-  square_dance::client::VideoPlayerWidget widget;
+  video_player::client::PlaybackController controller;
+  video_player::client::VideoPlayerWidget widget;
   controller.setPlayerWidget(&widget);
 
   QSignalSpy error_spy(&controller,
-                       &square_dance::client::PlaybackController::errorOccurred);
+                       &video_player::client::PlaybackController::errorOccurred);
   controller.play(MakeVideo(QString()));
   ASSERT_EQ(error_spy.count(), 1);
   EXPECT_EQ(CountFilesRecursive(download_dir.path()), before);
@@ -63,13 +63,13 @@ TEST(Playback, MissingLocalFileEmitsErrorWithoutWritingDownloadDir) {
   ASSERT_TRUE(download_dir.isValid());
   const int before = CountFilesRecursive(download_dir.path());
 
-  square_dance::client::PlaybackController controller;
-  square_dance::client::VideoPlayerWidget widget;
+  video_player::client::PlaybackController controller;
+  video_player::client::VideoPlayerWidget widget;
   controller.setPlayerWidget(&widget);
   QSignalSpy error_spy(&controller,
-                       &square_dance::client::PlaybackController::errorOccurred);
+                       &video_player::client::PlaybackController::errorOccurred);
   controller.play(MakeVideo(QString::fromUtf8(
-      "file:///C:/square_dance_missing_media_do_not_create.mp4")));
+      "file:///C:/video_player_missing_media_do_not_create.mp4")));
   ASSERT_GE(error_spy.count(), 1);
   EXPECT_EQ(CountFilesRecursive(download_dir.path()), before);
 }

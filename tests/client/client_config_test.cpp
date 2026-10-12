@@ -1,5 +1,5 @@
-#include "square_dance/client/ClientConfig.h"
-#include "square_dance/client/MainWindow.h"
+#include "video_player/client/ClientConfig.h"
+#include "video_player/client/MainWindow.h"
 
 #include <QApplication>
 #include <gtest/gtest.h>
@@ -9,19 +9,19 @@
 namespace {
 
 std::string FixturePath(const char* name) {
-#ifndef SQUARE_DANCE_SOURCE_DIR
-#error SQUARE_DANCE_SOURCE_DIR must be defined by CMake
+#ifndef VIDEO_PLAYER_SOURCE_DIR
+#error VIDEO_PLAYER_SOURCE_DIR must be defined by CMake
 #endif
-  return std::string(SQUARE_DANCE_SOURCE_DIR) + "/tests/client/fixtures/" + name;
+  return std::string(VIDEO_PLAYER_SOURCE_DIR) + "/tests/client/fixtures/" + name;
 }
 
 }  // namespace
 
 TEST(ClientConfig, LoadsValidJsonFixture) {
-  square_dance::client::ClientConfig cfg;
+  video_player::client::ClientConfig cfg;
   QString error;
   const QString path = QString::fromUtf8(FixturePath("client_config_valid.json").c_str());
-  ASSERT_TRUE(square_dance::client::LoadClientConfigFromFile(path, &cfg, &error))
+  ASSERT_TRUE(video_player::client::LoadClientConfigFromFile(path, &cfg, &error))
       << error.toStdString();
 
   EXPECT_EQ(cfg.http_base_url, QString::fromUtf8("http://127.0.0.1:8080"));
@@ -32,43 +32,43 @@ TEST(ClientConfig, LoadsValidJsonFixture) {
 TEST(ClientConfig, FailsWhenHttpBaseUrlMissing) {
   const QString json = QString::fromUtf8(
       "{\"ws_url\":\"ws://127.0.0.1:8081\",\"download_dir\":\"downloads\"}");
-  square_dance::client::ClientConfig cfg;
+  video_player::client::ClientConfig cfg;
   QString error;
   EXPECT_FALSE(
-      square_dance::client::LoadClientConfigFromString(json, &cfg, &error));
+      video_player::client::LoadClientConfigFromString(json, &cfg, &error));
   EXPECT_FALSE(error.isEmpty());
 }
 
 TEST(ClientConfig, FailsWhenWsUrlMissing) {
   const QString json = QString::fromUtf8(
       "{\"http_base_url\":\"http://127.0.0.1:8080\",\"download_dir\":\"d\"}");
-  square_dance::client::ClientConfig cfg;
+  video_player::client::ClientConfig cfg;
   QString error;
   EXPECT_FALSE(
-      square_dance::client::LoadClientConfigFromString(json, &cfg, &error));
+      video_player::client::LoadClientConfigFromString(json, &cfg, &error));
   EXPECT_FALSE(error.isEmpty());
 }
 
 TEST(ClientConfig, FailsWhenDownloadDirMissing) {
   const QString json = QString::fromUtf8(
       "{\"http_base_url\":\"http://127.0.0.1:8080\",\"ws_url\":\"ws://x\"}");
-  square_dance::client::ClientConfig cfg;
+  video_player::client::ClientConfig cfg;
   QString error;
   EXPECT_FALSE(
-      square_dance::client::LoadClientConfigFromString(json, &cfg, &error));
+      video_player::client::LoadClientConfigFromString(json, &cfg, &error));
   EXPECT_FALSE(error.isEmpty());
 }
 
 TEST(ClientConfig, FailsOnInvalidJson) {
-  square_dance::client::ClientConfig cfg;
+  video_player::client::ClientConfig cfg;
   QString error;
-  EXPECT_FALSE(square_dance::client::LoadClientConfigFromString(
+  EXPECT_FALSE(video_player::client::LoadClientConfigFromString(
       QString::fromUtf8("{not-json"), &cfg, &error));
   EXPECT_FALSE(error.isEmpty());
 }
 
 TEST(MainWindow, ConstructSmoke) {
-  square_dance::client::MainWindow window;
+  video_player::client::MainWindow window;
   window.show();
   EXPECT_TRUE(window.isVisible());
   EXPECT_FALSE(window.windowTitle().isEmpty());

@@ -31,18 +31,18 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 ## Task 2: server-shell
 
-**Description:** Add `SquareDanceServer` executable: `main`, `ServerConfig` JSON load, logging, GoogleTest target for config parse. No business modules yet.
+**Description:** Add `VideoPlayerServer` executable: `main`, `ServerConfig` JSON load, logging, GoogleTest target for config parse. No business modules yet.
 
 **Acceptance criteria:**
 
-- [x] `SquareDanceServer` builds and runs `--config` / example config
+- [x] `VideoPlayerServer` builds and runs `--config` / example config
 - [x] Config fields match `SPEC-server-shell.md` (ports, paths, intervals, keywords, threshold)
 - [x] Server targets do not link Qt
 - [x] Config GTest passes
 
 **Verification:**
 
-- [x] `cmake --build build-server --config Release --target SquareDanceServer`
+- [x] `cmake --build build-server --config Release --target VideoPlayerServer`
 - [x] `ctest --test-dir build-server -C Release -R ServerConfig --output-on-failure`
 - [x] Manual: process starts and exits cleanly
 
@@ -180,7 +180,7 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 **Verification:**
 
 - [x] Automated test if feasible; else manual WS client script documented in task notes
-- [x] Build Release `SquareDanceServer` succeeds
+- [x] Build Release `VideoPlayerServer` succeeds
 
 **Dependencies:** Task 5, Task 6  
 **Files likely touched:** `src/server/api/WsPushServer.`*, CMake FetchContent for websocketpp/asio, tests or `tools/ws_smoke.`*  
@@ -246,7 +246,7 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 **Acceptance criteria:**
 
-- [x] One `SquareDanceServer` process serves HTTP+WS and runs timers
+- [x] One `VideoPlayerServer` process serves HTTP+WS and runs timers
 - [x] Health deletion emits `video.removed`
 - [x] Example configs + authorized catalog documented for local run
 
@@ -288,7 +288,7 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 ## Task 11: client-shell
 
-**Description:** `SquareDanceApp` Qt5 Widgets target, `ClientConfig`, empty `MainWindow`, client GTest smoke. No SQLite.
+**Description:** `VideoPlayerApp` Qt5 Widgets target, `ClientConfig`, empty `MainWindow`, client GTest smoke. No SQLite.
 
 **Acceptance criteria:**
 
@@ -299,7 +299,7 @@ Track progress here. Specs: `CAPABILITY-MAP.md`, `SPEC-*.md`. Plan: `tasks/plan.
 
 **Verification:**
 
-- [x] Configure with Qt `CMAKE_PREFIX_PATH`; build `SquareDanceApp`
+- [x] Configure with Qt `CMAKE_PREFIX_PATH`; build `VideoPlayerApp`
 - [x] `ctest --test-dir build-client -C Release -R ClientConfig --output-on-failure` (also MainWindow smoke)
 - [x] Manual: window visible
 
@@ -468,15 +468,15 @@ Track follow-ups after Checkpoint E. Pick slices as needed.
 
 **Acceptance criteria:**
 
-- [x] Workflow or documented script builds `SquareDanceServer` without Qt
+- [x] Workflow or documented script builds `VideoPlayerServer` without Qt
 - [x] Server test suite runs green in CI (or local equivalent documented for proxy environments)
 
 **Verification:**
 
 - [x] `powershell -ExecutionPolicy Bypass -File scripts/ci-server.ps1` (Windows) — 29/29 passed (2026-10-10)
-- [ ] GitHub Actions `Server CI` when remote is connected (no remote yet)
+- [x] GitHub Actions `Server CI` green on `fanghuarumeng/VideoPlayer` (2026-10-12)
 
-**Status:** Done (2026-10-10). Local script + GH workflow; Actions pending remote.
+**Status:** Done (2026-10-10). Local script + GH workflow; Actions verified 2026-10-12 (Task 19).
 
 **Dependencies:** Checkpoint E  
 **Files likely touched:** `scripts/ci-server.ps1`, `scripts/ci-server.sh`, `.github/workflows/server-ci.yml`  
@@ -508,15 +508,15 @@ Track follow-ups after Checkpoint E. Pick slices as needed.
 
 ---
 
-### Task 19: Remote + GitHub Actions (next)
+### Task 19: Remote + GitHub Actions
 
 **Description:** Add git remote; push; verify `.github/workflows/server-ci.yml` on Origin/GitHub.
 
 **Acceptance criteria:**
 
-- [ ] Remote configured; `Server CI` workflow green on push/PR
+- [x] Remote configured; `Server CI` workflow green on push/PR
 
-**Status:** Next
+**Status:** Done (2026-10-12). Root cause: `project()` was CXX-only; Linux Ninja generate failed with missing `CMAKE_C_COMPILE_OBJECT`. Fixed by enabling `C CXX`. Run: https://github.com/fanghuarumeng/VideoPlayer/actions/runs/38197281279
 
 **Dependencies:** Task 17  
 **Estimated scope:** S

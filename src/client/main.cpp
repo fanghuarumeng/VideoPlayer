@@ -1,5 +1,5 @@
-#include "square_dance/client/ClientApp.h"
-#include "square_dance/client/ClientConfig.h"
+#include "video_player/client/ClientApp.h"
+#include "video_player/client/ClientConfig.h"
 
 #include <QString>
 
@@ -11,7 +11,7 @@ namespace {
 void PrintUsage(const char* argv0) {
   std::cerr << "Usage: " << argv0 << " --config <path-to-client.json>\n"
             << "  Example (from repo root):\n"
-            << "    SquareDanceApp.exe --config config/client.json.example\n";
+            << "    VideoPlayerApp.exe --config config/client.json.example\n";
 }
 
 }  // namespace
@@ -37,15 +37,15 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  square_dance::client::ClientConfig config;
+  video_player::client::ClientConfig config;
   QString error;
-  if (!square_dance::client::LoadClientConfigFromFile(config_path, &config,
+  if (!video_player::client::LoadClientConfigFromFile(config_path, &config,
                                                       &error)) {
     std::cerr << "failed to load config: " << error.toLocal8Bit().constData()
               << "\n";
     return 1;
   }
 
-  square_dance::client::ClientApp app(argc, argv, config);
+  video_player::client::ClientApp app(argc, argv, config);
   return app.Run();
 }

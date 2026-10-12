@@ -1,6 +1,6 @@
-#include "square_dance/server/ServerApp.h"
-#include "square_dance/server/ServerConfig.h"
-#include "square_dance/server/log.h"
+#include "video_player/server/ServerApp.h"
+#include "video_player/server/ServerConfig.h"
+#include "video_player/server/log.h"
 
 #include <iostream>
 #include <string>
@@ -12,7 +12,7 @@ void PrintUsage(const char* argv0) {
             << "  Serves HTTP search API and WebSocket push; runs ingest and "
                "URL health timers.\n"
             << "  Example (from repo root):\n"
-            << "    SquareDanceServer.exe --config config/server.json.example\n";
+            << "    VideoPlayerServer.exe --config config/server.json.example\n";
 }
 
 }  // namespace
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
       PrintUsage(argv[0]);
       return 0;
     } else {
-      square_dance::server::LogError("unknown argument: " + arg);
+      video_player::server::LogError("unknown argument: " + arg);
       PrintUsage(argv[0]);
       return 2;
     }
@@ -38,14 +38,14 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  square_dance::server::ServerConfig config;
+  video_player::server::ServerConfig config;
   std::string error;
-  if (!square_dance::server::LoadServerConfigFromFile(config_path, &config,
+  if (!video_player::server::LoadServerConfigFromFile(config_path, &config,
                                                      &error)) {
-    square_dance::server::LogError("failed to load config: " + error);
+    video_player::server::LogError("failed to load config: " + error);
     return 1;
   }
 
-  square_dance::server::ServerApp app(config);
+  video_player::server::ServerApp app(config);
   return app.RunBlocking();
 }

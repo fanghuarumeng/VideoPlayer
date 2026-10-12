@@ -1,6 +1,6 @@
-#include "square_dance/client/api/Video.h"
-#include "square_dance/client/playback/PlaybackController.h"
-#include "square_dance/client/playback/VideoPlayerWidget.h"
+#include "video_player/client/api/Video.h"
+#include "video_player/client/playback/PlaybackController.h"
+#include "video_player/client/playback/VideoPlayerWidget.h"
 
 #include <QCoreApplication>
 #include <QDeadlineTimer>
@@ -14,16 +14,16 @@
 namespace {
 
 QString SampleMp4Path() {
-#ifdef SQUARE_DANCE_SOURCE_DIR
-  return QDir(QString::fromUtf8(SQUARE_DANCE_SOURCE_DIR))
+#ifdef VIDEO_PLAYER_SOURCE_DIR
+  return QDir(QString::fromUtf8(VIDEO_PLAYER_SOURCE_DIR))
       .filePath(QString::fromUtf8("data/samples/square_basic.mp4"));
 #else
   return QString();
 #endif
 }
 
-square_dance::client::Video MakeLocalVideo(const QString& path) {
-  square_dance::client::Video v;
+video_player::client::Video MakeLocalVideo(const QString& path) {
+  video_player::client::Video v;
   v.id = 42;
   v.external_id = QString::fromUtf8("local-sample");
   v.title = QString::fromUtf8("sample");
@@ -51,16 +51,16 @@ TEST(Playback, RapidReplayDoesNotCrashOrEmitStaleFinished) {
     GTEST_SKIP() << "missing sample mp4: " << path.toStdString();
   }
 
-  square_dance::client::PlaybackController controller;
-  square_dance::client::VideoPlayerWidget widget;
+  video_player::client::PlaybackController controller;
+  video_player::client::VideoPlayerWidget widget;
   controller.setPlayerWidget(&widget);
 
   QSignalSpy finished_spy(
-      &controller, &square_dance::client::PlaybackController::playbackFinished);
+      &controller, &video_player::client::PlaybackController::playbackFinished);
   QSignalSpy error_spy(&controller,
-                       &square_dance::client::PlaybackController::errorOccurred);
+                       &video_player::client::PlaybackController::errorOccurred);
 
-  const square_dance::client::Video video = MakeLocalVideo(path);
+  const video_player::client::Video video = MakeLocalVideo(path);
   for (int i = 0; i < 8; ++i) {
     controller.play(video);
     Pump(30);

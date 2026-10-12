@@ -1,11 +1,11 @@
-SquareDanceServer local run (Windows)
+VideoPlayerServer local run (Windows)
 
 1. Build:
    cmake -S . -B build-server -DBUILD_SERVER=ON -DBUILD_CLIENT=OFF
-   cmake --build build-server --config Release --target SquareDanceServer
+   cmake --build build-server --config Release --target VideoPlayerServer
 
 2. From the repository root (so relative config paths resolve):
-   build-server\Release\SquareDanceServer.exe --config config\server.json.example
+   build-server\Release\VideoPlayerServer.exe --config config\server.json.example
 
 3. Try search:
    curl "http://127.0.0.1:8080/api/v1/videos/search?q=square&limit=20"

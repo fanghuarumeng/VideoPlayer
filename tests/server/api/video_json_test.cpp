@@ -1,9 +1,9 @@
-#include "square_dance/server/api/video_json.h"
+#include "video_player/server/api/video_json.h"
 
 #include <gtest/gtest.h>
 
 TEST(ServerVideoJson, SerializesApiFields) {
-  square_dance::server::Video video;
+  video_player::server::Video video;
   video.id = 7;
   video.external_id = "e1";
   video.title = "T";
@@ -14,7 +14,7 @@ TEST(ServerVideoJson, SerializesApiFields) {
   video.created_at = "2026-01-01T00:00:00Z";
   video.updated_at = "2026-01-02T00:00:00Z";
 
-  const nlohmann::json j = square_dance::server::VideoToApiJson(video);
+  const nlohmann::json j = video_player::server::VideoToApiJson(video);
   EXPECT_EQ(j.at("id").get<std::int64_t>(), 7);
   EXPECT_EQ(j.at("external_id").get<std::string>(), "e1");
   EXPECT_EQ(j.at("updated_at").get<std::string>(), "2026-01-02T00:00:00Z");

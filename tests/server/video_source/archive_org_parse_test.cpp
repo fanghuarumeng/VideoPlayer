@@ -1,4 +1,4 @@
-#include "square_dance/server/video_source/ArchiveOrgSource.h"
+#include "video_player/server/video_source/ArchiveOrgSource.h"
 
 #include <gtest/gtest.h>
 
@@ -10,10 +10,10 @@
 namespace {
 
 std::string ReadFixture(const char* name) {
-#ifndef SQUARE_DANCE_SOURCE_DIR
-#error SQUARE_DANCE_SOURCE_DIR must be defined by CMake
+#ifndef VIDEO_PLAYER_SOURCE_DIR
+#error VIDEO_PLAYER_SOURCE_DIR must be defined by CMake
 #endif
-  const std::string path = std::string(SQUARE_DANCE_SOURCE_DIR) +
+  const std::string path = std::string(VIDEO_PLAYER_SOURCE_DIR) +
                            "/tests/server/video_source/fixtures/" + name;
   std::ifstream in(path.c_str(), std::ios::binary);
   std::ostringstream ss;
@@ -24,9 +24,9 @@ std::string ReadFixture(const char* name) {
 }  // namespace
 
 TEST(ArchiveOrgParse, ParsesSearchDocs) {
-  std::vector<square_dance::server::ArchiveOrgSearchHit> hits;
+  std::vector<video_player::server::ArchiveOrgSearchHit> hits;
   std::string error;
-  ASSERT_TRUE(square_dance::server::ArchiveOrgSource::ParseSearchResponse(
+  ASSERT_TRUE(video_player::server::ArchiveOrgSource::ParseSearchResponse(
       ReadFixture("archive_org_search.json"), &hits, &error))
       << error;
   ASSERT_EQ(hits.size(), 2u);
@@ -37,10 +37,10 @@ TEST(ArchiveOrgParse, ParsesSearchDocs) {
 TEST(ArchiveOrgParse, PrefersMp4AndBuildsDownloadUrl) {
   std::string error;
   const std::string file =
-      square_dance::server::ArchiveOrgSource::PickMediaFileName(
+      video_player::server::ArchiveOrgSource::PickMediaFileName(
           ReadFixture("archive_org_metadata_mp4.json"), &error);
   EXPECT_EQ(file, "WartimeN1943.mp4") << error;
-  EXPECT_EQ(square_dance::server::ArchiveOrgSource::BuildDownloadUrl(
+  EXPECT_EQ(video_player::server::ArchiveOrgSource::BuildDownloadUrl(
                 "WartimeN1943", file),
             "https://archive.org/download/WartimeN1943/WartimeN1943.mp4");
 }
@@ -48,7 +48,7 @@ TEST(ArchiveOrgParse, PrefersMp4AndBuildsDownloadUrl) {
 TEST(ArchiveOrgParse, ReturnsEmptyWhenNoVideoFiles) {
   std::string error;
   const std::string file =
-      square_dance::server::ArchiveOrgSource::PickMediaFileName(
+      video_player::server::ArchiveOrgSource::PickMediaFileName(
           ReadFixture("archive_org_metadata_novideo.json"), &error);
   EXPECT_TRUE(file.empty());
   EXPECT_FALSE(error.empty());
@@ -59,7 +59,7 @@ TEST(ArchiveOrgParse, SearchWithInjectedHttpResolvesCandidate) {
   const std::string meta_json = ReadFixture("archive_org_metadata_mp4.json");
   const std::string empty_meta = ReadFixture("archive_org_metadata_novideo.json");
 
-  square_dance::server::ArchiveOrgSource::HttpGetFn getter =
+  video_player::server::ArchiveOrgSource::HttpGetFn getter =
       [&](const std::string& url, std::string* body, std::string* error) -> bool {
         if (url.find("advancedsearch.php") != std::string::npos) {
           *body = search_json;
@@ -79,11 +79,11 @@ TEST(ArchiveOrgParse, SearchWithInjectedHttpResolvesCandidate) {
         return false;
       };
 
-  square_dance::server::ArchiveOrgSource source(getter);
+  video_player::server::ArchiveOrgSource source(getter);
   EXPECT_EQ(source.id(), "archive_org");
 
   std::string error;
-  const std::vector<square_dance::server::VideoCandidate> candidates =
+  const std::vector<video_player::server::VideoCandidate> candidates =
       source.search("square dance", 10, &error);
   ASSERT_EQ(candidates.size(), 1u) << error;
   EXPECT_EQ(candidates[0].external_id, "WartimeN1943");

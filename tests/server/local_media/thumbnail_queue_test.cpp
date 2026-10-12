@@ -1,5 +1,5 @@
-#include "square_dance/server/local_media/ThumbnailGenerator.h"
-#include "square_dance/server/local_media/ThumbnailQueue.h"
+#include "video_player/server/local_media/ThumbnailGenerator.h"
+#include "video_player/server/local_media/ThumbnailQueue.h"
 
 #include <gtest/gtest.h>
 
@@ -10,13 +10,13 @@
 
 namespace {
 
-class CountingGenerator : public square_dance::server::IThumbnailGenerator {
+class CountingGenerator : public video_player::server::IThumbnailGenerator {
  public:
   CountingGenerator(int sleep_ms, std::atomic<int>* peak,
                     std::atomic<int>* current, std::atomic<int>* done)
       : sleep_ms_(sleep_ms), peak_(peak), current_(current), done_(done) {}
 
-  virtual bool generate(const square_dance::server::ThumbJob&,
+  virtual bool generate(const video_player::server::ThumbJob&,
                         std::string*) {
     const int now = ++(*current_);
     int peak = peak_->load();
@@ -42,12 +42,12 @@ TEST(ThumbnailQueue, CapsConcurrentWorkers) {
   std::atomic<int> current(0);
   std::atomic<int> done(0);
   CountingGenerator gen(80, &peak, &current, &done);
-  square_dance::server::ThumbnailQueue queue(&gen);
+  video_player::server::ThumbnailQueue queue(&gen);
   queue.start(1);
 
   const int n = 5;
   for (int i = 0; i < n; ++i) {
-    square_dance::server::ThumbJob job;
+    video_player::server::ThumbJob job;
     job.video_id = i + 1;
     job.video_path = "in.mp4";
     job.thumb_path = "out.jpg";
@@ -69,11 +69,11 @@ TEST(ThumbnailQueue, AllowsConfiguredWorkers) {
   std::atomic<int> current(0);
   std::atomic<int> done(0);
   CountingGenerator gen(100, &peak, &current, &done);
-  square_dance::server::ThumbnailQueue queue(&gen);
+  video_player::server::ThumbnailQueue queue(&gen);
   queue.start(2);
 
   for (int i = 0; i < 4; ++i) {
-    square_dance::server::ThumbJob job;
+    video_player::server::ThumbJob job;
     job.video_id = i + 1;
     job.video_path = "in.mp4";
     job.thumb_path = "out.jpg";

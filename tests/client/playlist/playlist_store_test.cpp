@@ -1,12 +1,12 @@
-#include "square_dance/client/playlist/PlaylistStore.h"
+#include "video_player/client/playlist/PlaylistStore.h"
 
 #include <QFile>
 #include <gtest/gtest.h>
 
 namespace {
 
-square_dance::client::PlaylistItem MakeItem(qint64 id, const char* title) {
-  square_dance::client::PlaylistItem item;
+video_player::client::PlaylistItem MakeItem(qint64 id, const char* title) {
+  video_player::client::PlaylistItem item;
   item.id = id;
   item.title = QString::fromUtf8(title);
   item.play_url =
@@ -33,7 +33,7 @@ class PlaylistStoreTest : public ::testing::Test {
 };
 
 TEST_F(PlaylistStoreTest, AppendDedupeClearAndRoundTrip) {
-  square_dance::client::PlaylistStore store(path_);
+  video_player::client::PlaylistStore store(path_);
   EXPECT_TRUE(store.append(MakeItem(1, "One")));
   EXPECT_TRUE(store.append(MakeItem(2, "Two")));
   EXPECT_FALSE(store.append(MakeItem(1, "One Again")));
@@ -43,7 +43,7 @@ TEST_F(PlaylistStoreTest, AppendDedupeClearAndRoundTrip) {
   store.setCurrentIndex(1);
   EXPECT_EQ(store.currentIndex(), 1);
 
-  square_dance::client::PlaylistStore loaded(path_);
+  video_player::client::PlaylistStore loaded(path_);
   QString error;
   ASSERT_TRUE(loaded.load(&error)) << error.toStdString();
   ASSERT_EQ(loaded.items().size(), 2);
@@ -55,13 +55,13 @@ TEST_F(PlaylistStoreTest, AppendDedupeClearAndRoundTrip) {
   EXPECT_TRUE(loaded.items().isEmpty());
   EXPECT_EQ(loaded.currentIndex(), -1);
 
-  square_dance::client::PlaylistStore again(path_);
+  video_player::client::PlaylistStore again(path_);
   ASSERT_TRUE(again.load(&error)) << error.toStdString();
   EXPECT_TRUE(again.items().isEmpty());
 }
 
 TEST_F(PlaylistStoreTest, LoadMissingFileStartsEmpty) {
-  square_dance::client::PlaylistStore store(
+  video_player::client::PlaylistStore store(
       QString::fromUtf8("playlist_store_missing.json"));
   QFile::remove(store.path());
   QString error;
@@ -71,8 +71,8 @@ TEST_F(PlaylistStoreTest, LoadMissingFileStartsEmpty) {
 }
 
 TEST_F(PlaylistStoreTest, AppendFromVideo) {
-  square_dance::client::PlaylistStore store(path_);
-  square_dance::client::Video video;
+  video_player::client::PlaylistStore store(path_);
+  video_player::client::Video video;
   video.id = 9;
   video.title = QString::fromUtf8("V");
   video.play_url = QString::fromUtf8("http://127.0.0.1/x.mp4");
@@ -83,13 +83,13 @@ TEST_F(PlaylistStoreTest, AppendFromVideo) {
 }
 
 TEST_F(PlaylistStoreTest, MergeFromVideoFillsThumbnail) {
-  square_dance::client::PlaylistStore store(path_);
-  square_dance::client::PlaylistItem item = MakeItem(3, "Clip");
+  video_player::client::PlaylistStore store(path_);
+  video_player::client::PlaylistItem item = MakeItem(3, "Clip");
   item.thumbnail_url.clear();
   EXPECT_TRUE(store.append(item));
   EXPECT_TRUE(store.items()[0].thumbnail_url.isEmpty());
 
-  square_dance::client::Video video;
+  video_player::client::Video video;
   video.id = 3;
   video.title = QString::fromUtf8("Clip");
   video.play_url = item.play_url;

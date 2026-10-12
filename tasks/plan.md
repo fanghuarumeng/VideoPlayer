@@ -2,7 +2,7 @@
 
 ## Overview
 
-Build a split-process product: a **Qt-free C++11 backend** (`SquareDanceServer`) that ingests videos from Archive.org + an authorized catalog, stores them in SQLite, probes URL health, and exposes HTTP search + websocketpp push; and a **Windows Qt5 frontend** (`SquareDanceApp`) for elderly users to search by name, play (no auto-download), and explicitly download, while receiving live catalog updates.
+Build a split-process product: a **Qt-free C++11 backend** (`VideoPlayerServer`) that ingests videos from Archive.org + an authorized catalog, stores them in SQLite, probes URL health, and exposes HTTP search + websocketpp push; and a **Windows Qt5 frontend** (`VideoPlayerApp`) for elderly users to search by name, play (no auto-download), and explicitly download, while receiving live catalog updates.
 
 Specs: root `CAPABILITY-MAP.md` + `SPEC-*.md` (approved).
 
