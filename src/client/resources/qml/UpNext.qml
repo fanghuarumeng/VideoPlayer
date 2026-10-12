@@ -43,17 +43,33 @@ Item {
                     spacing: 10
 
                     Image {
+                        id: thumb
                         Layout.preferredWidth: 96
                         Layout.preferredHeight: 54
                         fillMode: Image.PreserveAspectCrop
-                        source: thumbnail_url || ""
+                        asynchronous: true
                         sourceSize.width: 96
                         sourceSize.height: 54
+                        // ListView recycles delegates: clear then reload so an
+                        // empty/slow URL never keeps the previous row's pixels.
+                        property var itemId: id
+                        property string thumbUrl: thumbnail_url || ""
+
+                        function reload() {
+                            var u = thumbUrl.length > 0 ? thumbUrl
+                                                        : "qrc:/app/icons/film.svg"
+                            source = ""
+                            source = u
+                        }
+                        Component.onCompleted: reload()
+                        onItemIdChanged: reload()
+                        onThumbUrlChanged: reload()
 
                         Rectangle {
                             anchors.fill: parent
                             color: "#1E2226"
                             z: -1
+                            visible: thumb.status !== Image.Ready
                         }
                     }
 

@@ -112,16 +112,28 @@ Item {
                         spacing: 6
 
                         Image {
+                            id: thumb
                             width: parent.width
                             height: 90
                             fillMode: Image.PreserveAspectCrop
-                            source: thumbnail_url || ""
                             asynchronous: true
+                            property var itemId: id
+                            property string thumbUrl: thumbnail_url || ""
+                            function reload() {
+                                var u = thumbUrl.length > 0 ? thumbUrl
+                                                            : "qrc:/app/icons/film.svg"
+                                source = ""
+                                source = u
+                            }
+                            Component.onCompleted: reload()
+                            onItemIdChanged: reload()
+                            onThumbUrlChanged: reload()
                             Rectangle {
                                 anchors.fill: parent
                                 color: "#1E2226"
                                 z: -1
                                 radius: 4
+                                visible: thumb.status !== Image.Ready
                             }
                         }
 
